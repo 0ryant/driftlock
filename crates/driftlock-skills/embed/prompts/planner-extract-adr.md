@@ -1,0 +1,1 @@
+Extract Driftlock work orders from the ADR. Every work order must include an evidence span, write set, read set, acceptance gate, non-goal, confidence score, and status. Low confidence becomes needs_review, not ready.

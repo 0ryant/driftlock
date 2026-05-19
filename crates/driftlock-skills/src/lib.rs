@@ -1,5 +1,9 @@
 //! Embedded skills and prompt templates.
 
+mod generated {
+    include!(concat!(env!("OUT_DIR"), "/generated.rs"));
+}
+
 /// Embedded skill.
 #[derive(Debug, Clone, Copy)]
 pub struct Skill {
@@ -28,37 +32,37 @@ pub fn skills() -> &'static [Skill] {
         Skill {
             name: "driftlock",
             uri: "driftlock://skills/driftlock",
-            body: include_str!("../../../skills/driftlock/SKILL.md"),
+            body: generated::SKILL_DRIFTLOCK,
         },
         Skill {
             name: "planner",
             uri: "driftlock://skills/planner",
-            body: include_str!("../../../skills/driftlock-planner/SKILL.md"),
+            body: generated::SKILL_PLANNER,
         },
         Skill {
             name: "worker",
             uri: "driftlock://skills/worker",
-            body: include_str!("../../../skills/driftlock-worker/SKILL.md"),
+            body: generated::SKILL_WORKER,
         },
         Skill {
             name: "reviewer",
             uri: "driftlock://skills/reviewer",
-            body: include_str!("../../../skills/driftlock-reviewer/SKILL.md"),
+            body: generated::SKILL_REVIEWER,
         },
         Skill {
             name: "maintainer",
             uri: "driftlock://skills/maintainer",
-            body: include_str!("../../../skills/driftlock-maintainer/SKILL.md"),
+            body: generated::SKILL_MAINTAINER,
         },
         Skill {
             name: "tdd",
             uri: "driftlock://skills/tdd",
-            body: include_str!("../../../skills/driftlock-tdd/SKILL.md"),
+            body: generated::SKILL_TDD,
         },
         Skill {
             name: "mcp-operator",
             uri: "driftlock://skills/mcp-operator",
-            body: include_str!("../../../skills/driftlock-mcp-operator/SKILL.md"),
+            body: generated::SKILL_MCP_OPERATOR,
         },
     ]
 }
@@ -69,32 +73,32 @@ pub fn prompts() -> &'static [Prompt] {
         Prompt {
             name: "driftlock.worker_start",
             uri: "driftlock://prompts/worker-start",
-            body: include_str!("../../../prompts/worker-start.md"),
+            body: generated::PROMPT_WORKER_START,
         },
         Prompt {
             name: "driftlock.planner_extract_adr",
             uri: "driftlock://prompts/planner-extract-adr",
-            body: include_str!("../../../prompts/planner-extract-adr.md"),
+            body: generated::PROMPT_PLANNER_EXTRACT_ADR,
         },
         Prompt {
             name: "driftlock.reviewer_gate",
             uri: "driftlock://prompts/reviewer-gate",
-            body: include_str!("../../../prompts/reviewer-gate.md"),
+            body: generated::PROMPT_REVIEWER_GATE,
         },
         Prompt {
             name: "driftlock.conflict_review",
             uri: "driftlock://prompts/conflict-review",
-            body: include_str!("../../../prompts/conflict-review.md"),
+            body: generated::PROMPT_CONFLICT_REVIEW,
         },
         Prompt {
             name: "driftlock.maintainer_refresh",
             uri: "driftlock://prompts/maintainer-refresh",
-            body: include_str!("../../../prompts/maintainer-refresh.md"),
+            body: generated::PROMPT_MAINTAINER_REFRESH,
         },
         Prompt {
             name: "driftlock.agent_brief_template",
             uri: "driftlock://prompts/agent-brief-template",
-            body: include_str!("../../../prompts/agent-brief-template.md"),
+            body: generated::PROMPT_AGENT_BRIEF_TEMPLATE,
         },
     ]
 }

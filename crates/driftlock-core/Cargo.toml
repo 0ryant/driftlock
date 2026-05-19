@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 description = "Domain model and safety logic for Driftlock."
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
 
 [dependencies]
 chrono.workspace = true

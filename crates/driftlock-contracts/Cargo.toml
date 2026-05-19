@@ -5,10 +5,13 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 description = "Schema export and contract fixtures for Driftlock."
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-driftlock-core = { path = "../driftlock-core" }
+driftlock-core = { version = "0.1.0", path = "../driftlock-core" }
 schemars.workspace = true
 serde_json.workspace = true
 

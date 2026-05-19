@@ -5,11 +5,14 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 description = "Local .driftlock persistence, claims, and audit events for Driftlock."
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
 
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-driftlock-core = { path = "../driftlock-core" }
+driftlock-core = { version = "0.1.0", path = "../driftlock-core" }
 serde.workspace = true
 serde_json.workspace = true
 ed25519-dalek.workspace = true
