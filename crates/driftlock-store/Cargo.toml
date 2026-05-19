@@ -1,0 +1,29 @@
+[package]
+name = "driftlock-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Local .driftlock persistence, claims, and audit events for Driftlock."
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+driftlock-core = { path = "../driftlock-core" }
+serde.workspace = true
+serde_json.workspace = true
+ed25519-dalek.workspace = true
+rand.workspace = true
+base64.workspace = true
+sha2.workspace = true
+hex.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
+
+[[test]]
+name = "persistence"
+path = "tests/persistence.rs"

@@ -1,0 +1,45 @@
+{
+  "id": "adr-0002:T01",
+  "title": "Represent ADR obligations as work orders",
+  "source": {
+    "adr": "docs/adrs/0002-taskgraph-primary-artifact.md",
+    "adr_revision": "scaffold",
+    "section": "Obligations",
+    "start_line": 13,
+    "end_line": 15,
+    "evidence": "Represent ADR obligations as work orders in a graph."
+  },
+  "intent": "Create the canonical WorkOrder contract used by core, CLI, and MCP surfaces.",
+  "lane": "core",
+  "status": "complete",
+  "write_set": [
+    "crates/driftlock-core/src/model.rs",
+    "contracts/schemas/work-order.schema.json"
+  ],
+  "read_set": [
+    "docs/adrs/0002-taskgraph-primary-artifact.md"
+  ],
+  "exclusive_resources": [
+    "contracts/schemas/work-order.schema.json"
+  ],
+  "deps": [],
+  "unlocks": [
+    "adr-0002:T02"
+  ],
+  "conflicts": [],
+  "acceptance": [
+    "cargo test -p driftlock-core contract_work_order_roundtrip"
+  ],
+  "non_goals": [
+    "Do not add remote state backends in this task."
+  ],
+  "confidence": {
+    "task_extraction": 0.95,
+    "file_scope": 0.9,
+    "dependency_edges": 0.85
+  },
+  "metadata": {
+    "completed_by": "scaffold",
+    "completed_at": "2026-05-19T00:00:00Z"
+  }
+}

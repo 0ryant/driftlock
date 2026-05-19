@@ -1,0 +1,21 @@
+{
+  "crate": "driftlock-cli",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "Local operator workflows.",
+  "public_api": [
+    "driftlock binary"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "docs/getting-started.md"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-cli",
+    "cargo clippy -p driftlock-cli"
+  ]
+}

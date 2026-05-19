@@ -1,0 +1,24 @@
+# Driftlock audit operations registry (emit sites).
+schema_version: "0.1.0"
+operations:
+  - id: graph.built
+    event_type: dev.driftlock.graph.built.v1
+    emit_sites:
+      - crates/driftlock-cli/src/main.rs
+      - crates/driftlock-store/src/events.rs
+    required_fields: [event, at, actor]
+  - id: task.claimed
+    event_type: dev.driftlock.task.claimed.v1
+    emit_sites:
+      - crates/driftlock-store/src/claims.rs
+    required_fields: [event, at, actor, task]
+  - id: task.released
+    event_type: dev.driftlock.task.released.v1
+    emit_sites:
+      - crates/driftlock-store/src/claims.rs
+    required_fields: [event, at, actor, task]
+  - id: task.completed
+    event_type: dev.driftlock.task.completed.v1
+    emit_sites:
+      - crates/driftlock-store/src/claims.rs
+    required_fields: [event, at, actor, task]

@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claim",
+  "description": "Claim state.",
+  "type": "object",
+  "required": [
+    "agent",
+    "base_ref",
+    "claimed_at",
+    "status",
+    "task",
+    "write_set"
+  ],
+  "properties": {
+    "agent": {
+      "description": "Agent or actor ID.",
+      "type": "string"
+    },
+    "base_ref": {
+      "description": "Base ref.",
+      "type": "string"
+    },
+    "claimed_at": {
+      "description": "Claim timestamp.",
+      "type": "string"
+    },
+    "expires_at": {
+      "description": "Optional expiry.",
+      "default": null,
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "description": "Claim status.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ClaimStatus"
+        }
+      ]
+    },
+    "task": {
+      "description": "Task ID.",
+      "type": "string"
+    },
+    "write_set": {
+      "description": "Claimed write set.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "ClaimStatus": {
+      "description": "Claim status.",
+      "oneOf": [
+        {
+          "description": "Active claim.",
+          "type": "string",
+          "enum": [
+            "active"
+          ]
+        },
+        {
+          "description": "Released claim.",
+          "type": "string",
+          "enum": [
+            "released"
+          ]
+        },
+        {
+          "description": "Completed claim.",
+          "type": "string",
+          "enum": [
+            "completed"
+          ]
+        },
+        {
+          "description": "Expired claim.",
+          "type": "string",
+          "enum": [
+            "expired"
+          ]
+        }
+      ]
+    }
+  }
+}

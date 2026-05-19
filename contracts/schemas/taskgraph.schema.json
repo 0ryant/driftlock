@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/taskgraph.schema.json",
+  "title": "Driftlock TaskGraph",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "graph_id",
+    "repo_root",
+    "base_ref",
+    "generated_at",
+    "tasks",
+    "edges",
+    "lanes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "graph_id": {
+      "type": "string"
+    },
+    "repo_root": {
+      "type": "string"
+    },
+    "base_ref": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "$ref": "work-order.schema.json"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "$ref": "lane-manifest.schema.json#/$defs/lane"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "edge": {
+      "type": "object",
+      "required": [
+        "from",
+        "to",
+        "kind",
+        "reason"
+      ],
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "depends_on",
+            "unlocks",
+            "produces_contract",
+            "blocks",
+            "conflicts_with"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

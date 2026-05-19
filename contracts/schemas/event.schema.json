@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/event.schema.json",
+  "title": "Driftlock Event",
+  "type": "object",
+  "required": [
+    "event",
+    "at",
+    "actor"
+  ],
+  "properties": {
+    "event": {
+      "type": "string"
+    },
+    "at": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "task": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

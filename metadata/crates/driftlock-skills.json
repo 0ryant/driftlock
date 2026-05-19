@@ -1,0 +1,24 @@
+{
+  "crate": "driftlock-skills",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "Embedded skill and prompt resources.",
+  "public_api": [
+    "Skill",
+    "Prompt",
+    "skills",
+    "prompts"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "metadata/skill-pack.manifest.json"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-skills",
+    "cargo clippy -p driftlock-skills"
+  ]
+}

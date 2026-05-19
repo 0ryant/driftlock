@@ -1,0 +1,8 @@
+schema_version = "0.1.0"
+
+[[lanes]]
+id = "backend-auth"
+description = "Auth/session backend work"
+write_allow = ["crates/auth/**", "tests/auth/**"]
+read_allow = ["crates/http/**", "crates/core/**"]
+exclusive = []

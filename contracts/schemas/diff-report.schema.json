@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/diff-report.schema.json",
+  "title": "Driftlock DiffReport",
+  "type": "object",
+  "required": [
+    "task_id",
+    "allowed",
+    "touched_files",
+    "violations"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "allowed": {
+      "type": "boolean"
+    },
+    "touched_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/violation"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "violation": {
+      "type": "object",
+      "required": [
+        "path",
+        "reason"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

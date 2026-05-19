@@ -1,0 +1,19 @@
+{
+  "name": "driftlock",
+  "version": "0.1.0-rc.1",
+  "generated_at": "2026-05-19T00:00:00Z",
+  "principle": "ADR prose explains intent; Driftlock work orders define delivery boundaries.",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "mcp_protocol_target": "2025-06-18",
+  "workspace_members": [
+    "driftlock-core",
+    "driftlock-git",
+    "driftlock-contracts",
+    "driftlock-skills",
+    "driftlock-store",
+    "driftlock-cli",
+    "driftlock-mcp"
+  ],
+  "bootstrap_tasks_complete": true
+}

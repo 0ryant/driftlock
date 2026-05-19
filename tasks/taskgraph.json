@@ -1,0 +1,1442 @@
+{
+  "schema_version": "0.1.0",
+  "graph_id": "driftlock-bootstrap-0.1.0",
+  "repo_root": ".",
+  "base_ref": "scaffold",
+  "generated_at": "2026-05-19T00:00:00Z",
+  "tasks": [
+    {
+      "id": "adr-0001:T01",
+      "title": "Define JSON Schemas before implementation behavior",
+      "source": {
+        "adr": "docs/adrs/0001-contracts-and-schema-first.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Define JSON Schemas before implementation behavior."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0001: Define JSON Schemas before implementation behavior.",
+      "lane": "contracts",
+      "status": "complete",
+      "write_set": [
+        "contracts/schemas/taskgraph.schema.json",
+        "crates/driftlock-contracts/src/lib.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0001-contracts-and-schema-first.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "contracts/schemas/taskgraph.schema.json"
+      ],
+      "deps": [],
+      "unlocks": [
+        "adr-0001:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0001:T02",
+      "title": "Generate or mirror Rust types from the schema contract",
+      "source": {
+        "adr": "docs/adrs/0001-contracts-and-schema-first.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Generate or mirror Rust types from the schema contract."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0001: Generate or mirror Rust types from the schema contract.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0001-contracts-and-schema-first.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0001:T01"
+      ],
+      "unlocks": [
+        "adr-0001:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0001:T03",
+      "title": "Add contract tests for representative golden examples",
+      "source": {
+        "adr": "docs/adrs/0001-contracts-and-schema-first.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Add contract tests for representative golden examples."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0001: Add contract tests for representative golden examples.",
+      "lane": "contracts",
+      "status": "complete",
+      "write_set": [
+        "contracts/schemas/taskgraph.schema.json",
+        "crates/driftlock-contracts/src/lib.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0001-contracts-and-schema-first.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "contracts/schemas/taskgraph.schema.json"
+      ],
+      "deps": [
+        "adr-0001:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0002:T01",
+      "title": "Represent ADR obligations as work orders in a graph",
+      "source": {
+        "adr": "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Represent ADR obligations as work orders in a graph."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0002: Represent ADR obligations as work orders in a graph.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [
+        "adr-0002:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0002:T02",
+      "title": "Attach ADR evidence spans to every work order",
+      "source": {
+        "adr": "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Attach ADR evidence spans to every work order."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0002: Attach ADR evidence spans to every work order.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0002:T01"
+      ],
+      "unlocks": [
+        "adr-0002:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0002:T03",
+      "title": "Expose readiness, dependency, conflict, and unlock queries",
+      "source": {
+        "adr": "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Expose readiness, dependency, conflict, and unlock queries."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0002: Expose readiness, dependency, conflict, and unlock queries.",
+      "lane": "cli",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-cli/src/main.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0002-taskgraph-primary-artifact.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0002:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0003:T01",
+      "title": "Define lane allowlists, read lists, and exclusive resources",
+      "source": {
+        "adr": "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Define lane allowlists, read lists, and exclusive resources."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0003: Define lane allowlists, read lists, and exclusive resources.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [
+        "adr-0003:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0003:T02",
+      "title": "Detect same-file, exclusive-resource, and contract-level conflicts",
+      "source": {
+        "adr": "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Detect same-file, exclusive-resource, and contract-level conflicts."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0003: Detect same-file, exclusive-resource, and contract-level conflicts.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0003:T01"
+      ],
+      "unlocks": [
+        "adr-0003:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0003:T03",
+      "title": "Classify conflicts as hard, soft, or unknown",
+      "source": {
+        "adr": "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Classify conflicts as hard, soft, or unknown."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0003: Classify conflicts as hard, soft, or unknown.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0003-lane-manifest-and-conflict-model.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0003:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0004:T01",
+      "title": "Implement core logic as a reusable Rust library",
+      "source": {
+        "adr": "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Implement core logic as a reusable Rust library."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0004: Implement core logic as a reusable Rust library.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [
+        "adr-0004:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0004:T02",
+      "title": "Provide a CLI for local workflows",
+      "source": {
+        "adr": "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Provide a CLI for local workflows."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0004: Provide a CLI for local workflows.",
+      "lane": "cli",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-cli/src/main.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0004:T01"
+      ],
+      "unlocks": [
+        "adr-0004:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0004:T03",
+      "title": "Provide an MCP stdio server exposing tools, resources, and prompts",
+      "source": {
+        "adr": "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Provide an MCP stdio server exposing tools, resources, and prompts."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0004: Provide an MCP stdio server exposing tools, resources, and prompts.",
+      "lane": "mcp",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-mcp/src/manual_stdio.rs",
+        "metadata/mcp.manifest.json"
+      ],
+      "read_set": [
+        "docs/adrs/0004-rust-workspace-and-mcp-stdio.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "metadata/mcp.manifest.json"
+      ],
+      "deps": [
+        "adr-0004:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0005:T01",
+      "title": "Ship role-specific SKILL.md files with the crate",
+      "source": {
+        "adr": "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Ship role-specific SKILL.md files with the crate."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0005: Ship role-specific SKILL.md files with the crate.",
+      "lane": "skills",
+      "status": "complete",
+      "write_set": [
+        "skills/driftlock/SKILL.md",
+        "crates/driftlock-skills/src/lib.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "skills/driftlock/SKILL.md"
+      ],
+      "deps": [],
+      "unlocks": [
+        "adr-0005:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0005:T02",
+      "title": "Expose skill content as MCP resources",
+      "source": {
+        "adr": "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Expose skill content as MCP resources."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0005: Expose skill content as MCP resources.",
+      "lane": "mcp",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-mcp/src/manual_stdio.rs",
+        "metadata/mcp.manifest.json"
+      ],
+      "read_set": [
+        "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "metadata/mcp.manifest.json"
+      ],
+      "deps": [
+        "adr-0005:T01"
+      ],
+      "unlocks": [
+        "adr-0005:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0005:T03",
+      "title": "Expose blessed workflows as MCP prompts",
+      "source": {
+        "adr": "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Expose blessed workflows as MCP prompts."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0005: Expose blessed workflows as MCP prompts.",
+      "lane": "mcp",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-mcp/src/manual_stdio.rs",
+        "metadata/mcp.manifest.json"
+      ],
+      "read_set": [
+        "docs/adrs/0005-skill-pack-runtime-governance.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "metadata/mcp.manifest.json"
+      ],
+      "deps": [
+        "adr-0005:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0006:T01",
+      "title": "Add tests and golden fixtures before production implementation",
+      "source": {
+        "adr": "docs/adrs/0006-tdd-first-delivery.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Add tests and golden fixtures before production implementation."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0006: Add tests and golden fixtures before production implementation.",
+      "lane": "contracts",
+      "status": "complete",
+      "write_set": [
+        "contracts/schemas/taskgraph.schema.json",
+        "crates/driftlock-contracts/src/lib.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0006-tdd-first-delivery.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [
+        "contracts/schemas/taskgraph.schema.json"
+      ],
+      "deps": [],
+      "unlocks": [
+        "adr-0006:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0006:T02",
+      "title": "Track every bootstrapping task as complete in the ledger",
+      "source": {
+        "adr": "docs/adrs/0006-tdd-first-delivery.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Track every bootstrapping task as complete in the ledger."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0006: Track every bootstrapping task as complete in the ledger.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0006-tdd-first-delivery.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0006:T01"
+      ],
+      "unlocks": [
+        "adr-0006:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0006:T03",
+      "title": "Include CI workflow and local verification scripts",
+      "source": {
+        "adr": "docs/adrs/0006-tdd-first-delivery.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Include CI workflow and local verification scripts."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0006: Include CI workflow and local verification scripts.",
+      "lane": "cli",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-cli/src/main.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0006-tdd-first-delivery.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0006:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0007:T01",
+      "title": "Treat unknown file scope as unsafe",
+      "source": {
+        "adr": "docs/adrs/0007-conservative-safety-defaults.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Treat unknown file scope as unsafe."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0007: Treat unknown file scope as unsafe.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0007-conservative-safety-defaults.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [
+        "adr-0007:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0007:T02",
+      "title": "Treat missing ADR evidence as non-canonical",
+      "source": {
+        "adr": "docs/adrs/0007-conservative-safety-defaults.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Treat missing ADR evidence as non-canonical."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0007: Treat missing ADR evidence as non-canonical.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0007-conservative-safety-defaults.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0007:T01"
+      ],
+      "unlocks": [
+        "adr-0007:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0007:T03",
+      "title": "Block ready status when hard conflicts or unsatisfied dependencies exist",
+      "source": {
+        "adr": "docs/adrs/0007-conservative-safety-defaults.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Block ready status when hard conflicts or unsatisfied dependencies exist."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0007: Block ready status when hard conflicts or unsatisfied dependencies exist.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0007-conservative-safety-defaults.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0007:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0008:T01",
+      "title": "Store graph, claims, and events under `.driftlock` by default",
+      "source": {
+        "adr": "docs/adrs/0008-local-state-audit-ledger.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 14,
+        "end_line": 14,
+        "evidence": "Store graph, claims, and events under `.driftlock` by default."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0008: Store graph, claims, and events under `.driftlock` by default.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0008-local-state-audit-ledger.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [
+        "adr-0008:T02"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0008:T02",
+      "title": "Use event JSONL for auditable state transitions",
+      "source": {
+        "adr": "docs/adrs/0008-local-state-audit-ledger.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 15,
+        "end_line": 15,
+        "evidence": "Use event JSONL for auditable state transitions."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0008: Use event JSONL for auditable state transitions.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0008-local-state-audit-ledger.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0008:T01"
+      ],
+      "unlocks": [
+        "adr-0008:T03"
+      ],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    },
+    {
+      "id": "adr-0008:T03",
+      "title": "Bind claims to task ID, actor, base ref, and write set",
+      "source": {
+        "adr": "docs/adrs/0008-local-state-audit-ledger.md",
+        "adr_revision": "scaffold",
+        "section": "Obligations",
+        "start_line": 16,
+        "end_line": 16,
+        "evidence": "Bind claims to task ID, actor, base ref, and write set."
+      },
+      "intent": "Deliver bootstrapping obligation from ADR-0008: Bind claims to task ID, actor, base ref, and write set.",
+      "lane": "core",
+      "status": "complete",
+      "write_set": [
+        "crates/driftlock-core/src/model.rs"
+      ],
+      "read_set": [
+        "docs/adrs/0008-local-state-audit-ledger.md",
+        "lanes/default.toml"
+      ],
+      "exclusive_resources": [],
+      "deps": [
+        "adr-0008:T02"
+      ],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "cargo test --workspace",
+        "python3 scripts/verify_scaffold.py"
+      ],
+      "non_goals": [
+        "Do not broaden scope beyond the ADR obligation.",
+        "Do not alter unrelated public contracts."
+      ],
+      "confidence": {
+        "task_extraction": 0.94,
+        "file_scope": 0.88,
+        "dependency_edges": 0.86
+      },
+      "metadata": {
+        "completed": true,
+        "completed_at": "2026-05-19T00:00:00Z",
+        "completed_by": "scaffold"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "adr-0001:T01",
+      "to": "adr-0001:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0001:T02",
+      "to": "adr-0001:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0001:T01",
+      "to": "adr-0001:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0001:T02",
+      "to": "adr-0001:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0002:T01",
+      "to": "adr-0002:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0002:T02",
+      "to": "adr-0002:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0002:T01",
+      "to": "adr-0002:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0002:T02",
+      "to": "adr-0002:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0003:T01",
+      "to": "adr-0003:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0003:T02",
+      "to": "adr-0003:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0003:T01",
+      "to": "adr-0003:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0003:T02",
+      "to": "adr-0003:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0004:T01",
+      "to": "adr-0004:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0004:T02",
+      "to": "adr-0004:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0004:T01",
+      "to": "adr-0004:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0004:T02",
+      "to": "adr-0004:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0005:T01",
+      "to": "adr-0005:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0005:T02",
+      "to": "adr-0005:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0005:T01",
+      "to": "adr-0005:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0005:T02",
+      "to": "adr-0005:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0006:T01",
+      "to": "adr-0006:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0006:T02",
+      "to": "adr-0006:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0006:T01",
+      "to": "adr-0006:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0006:T02",
+      "to": "adr-0006:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0007:T01",
+      "to": "adr-0007:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0007:T02",
+      "to": "adr-0007:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0007:T01",
+      "to": "adr-0007:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0007:T02",
+      "to": "adr-0007:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0008:T01",
+      "to": "adr-0008:T02",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0008:T02",
+      "to": "adr-0008:T03",
+      "kind": "unlocks",
+      "reason": "Bootstrapping tasks complete in ADR obligation order."
+    },
+    {
+      "from": "adr-0008:T01",
+      "to": "adr-0008:T02",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    },
+    {
+      "from": "adr-0008:T02",
+      "to": "adr-0008:T03",
+      "kind": "depends_on",
+      "reason": "Task derived from the next ADR obligation and depends on previous contract step."
+    }
+  ],
+  "lanes": [
+    {
+      "id": "core",
+      "description": "Domain contracts, extraction, graph, conflicts, readiness, briefs, and verification.",
+      "write_allow": [
+        "crates/driftlock-core/**",
+        "contracts/schemas/**",
+        "contracts/examples/**"
+      ],
+      "read_allow": [
+        "docs/adrs/**",
+        "tasks/**",
+        "lanes/**"
+      ],
+      "exclusive": [
+        "contracts/schemas/**",
+        "Cargo.lock"
+      ]
+    },
+    {
+      "id": "git",
+      "description": "Repo indexing and diff parsing helpers.",
+      "write_allow": [
+        "crates/driftlock-git/**"
+      ],
+      "read_allow": [
+        "crates/driftlock-core/**",
+        "examples/**"
+      ],
+      "exclusive": []
+    },
+    {
+      "id": "contracts",
+      "description": "Schema export and contract fixtures.",
+      "write_allow": [
+        "crates/driftlock-contracts/**",
+        "contracts/**"
+      ],
+      "read_allow": [
+        "crates/driftlock-core/**",
+        "docs/adrs/**"
+      ],
+      "exclusive": [
+        "contracts/schemas/**"
+      ]
+    },
+    {
+      "id": "skills",
+      "description": "Blessed agent skills and MCP prompt templates.",
+      "write_allow": [
+        "skills/**",
+        "prompts/**",
+        "crates/driftlock-skills/**"
+      ],
+      "read_allow": [
+        "docs/**",
+        "tasks/**"
+      ],
+      "exclusive": [
+        "skills/**"
+      ]
+    },
+    {
+      "id": "cli",
+      "description": "CLI workflows and local automation.",
+      "write_allow": [
+        "crates/driftlock-cli/**",
+        "scripts/**"
+      ],
+      "read_allow": [
+        "crates/driftlock-core/**",
+        "crates/driftlock-git/**",
+        "contracts/**"
+      ],
+      "exclusive": []
+    },
+    {
+      "id": "mcp",
+      "description": "MCP stdio server, resources, prompts, and tool contracts.",
+      "write_allow": [
+        "crates/driftlock-mcp/**",
+        "metadata/mcp.manifest.json"
+      ],
+      "read_allow": [
+        "crates/driftlock-core/**",
+        "crates/driftlock-skills/**",
+        "contracts/**"
+      ],
+      "exclusive": [
+        "metadata/mcp.manifest.json"
+      ]
+    }
+  ],
+  "metadata": {
+    "all_bootstrap_tasks_complete": true,
+    "task_count": 24,
+    "completed_task_count": 24
+  }
+}

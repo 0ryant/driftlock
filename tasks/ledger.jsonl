@@ -1,0 +1,24 @@
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "contracts", "title": "Define JSON Schemas before implementation behavior"}, "task": "adr-0001:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Generate or mirror Rust types from the schema contract"}, "task": "adr-0001:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "contracts", "title": "Add contract tests for representative golden examples"}, "task": "adr-0001:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Represent ADR obligations as work orders in a graph"}, "task": "adr-0002:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Attach ADR evidence spans to every work order"}, "task": "adr-0002:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "cli", "title": "Expose readiness, dependency, conflict, and unlock queries"}, "task": "adr-0002:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Define lane allowlists, read lists, and exclusive resources"}, "task": "adr-0003:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Detect same-file, exclusive-resource, and contract-level conflicts"}, "task": "adr-0003:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Classify conflicts as hard, soft, or unknown"}, "task": "adr-0003:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Implement core logic as a reusable Rust library"}, "task": "adr-0004:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "cli", "title": "Provide a CLI for local workflows"}, "task": "adr-0004:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "mcp", "title": "Provide an MCP stdio server exposing tools, resources, and prompts"}, "task": "adr-0004:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "skills", "title": "Ship role-specific SKILL.md files with the crate"}, "task": "adr-0005:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "mcp", "title": "Expose skill content as MCP resources"}, "task": "adr-0005:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "mcp", "title": "Expose blessed workflows as MCP prompts"}, "task": "adr-0005:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "contracts", "title": "Add tests and golden fixtures before production implementation"}, "task": "adr-0006:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Track every bootstrapping task as complete in the ledger"}, "task": "adr-0006:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "cli", "title": "Include CI workflow and local verification scripts"}, "task": "adr-0006:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Treat unknown file scope as unsafe"}, "task": "adr-0007:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Treat missing ADR evidence as non-canonical"}, "task": "adr-0007:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Block ready status when hard conflicts or unsatisfied dependencies exist"}, "task": "adr-0007:T03"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Store graph, claims, and events under `.driftlock` by default"}, "task": "adr-0008:T01"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Use event JSONL for auditable state transitions"}, "task": "adr-0008:T02"}
+{"actor": "scaffold", "at": "2026-05-19T00:00:00Z", "event": "task_completed", "metadata": {"lane": "core", "title": "Bind claims to task ID, actor, base ref, and write set"}, "task": "adr-0008:T03"}

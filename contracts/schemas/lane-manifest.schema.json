@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/lane-manifest.schema.json",
+  "title": "Driftlock LaneManifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "lanes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lane"
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "lane": {
+      "type": "object",
+      "required": [
+        "id",
+        "description",
+        "write_allow",
+        "read_allow",
+        "exclusive"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "write_allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "read_allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclusive": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

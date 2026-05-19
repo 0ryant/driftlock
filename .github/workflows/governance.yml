@@ -1,0 +1,48 @@
+name: governance
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Install contract validators
+        run: python3 -m pip install -r scripts/requirements-contracts.txt pyyaml
+      - run: python3 scripts/validate_contracts.py
+      - run: python3 scripts/validate_audit_operations.py
+      - run: bash scripts/ci/check_cloudevents_schema.sh
+      - run: bash scripts/ecosystem_governance.sh
+      - name: gitleaks (optional)
+        continue-on-error: true
+        run: |
+          if command -v gitleaks >/dev/null 2>&1; then
+            gitleaks detect --no-banner --redact --source .
+          else
+            echo "skip: gitleaks not installed"
+          fi
+      - name: taudit self-scan (optional)
+        continue-on-error: true
+        run: |
+          if command -v taudit >/dev/null 2>&1; then
+            bash scripts/ci/conformance_taudit.sh
+          else
+            echo "skip: taudit not installed"
+          fi
+      - name: cargo deny
+        run: |
+          cargo install cargo-deny --locked 2>/dev/null || true
+          bash scripts/supply-chain-gate.sh

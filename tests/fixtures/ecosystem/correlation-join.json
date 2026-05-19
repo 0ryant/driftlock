@@ -1,0 +1,21 @@
+{
+  "description": "Static join fixture: Driftlock + mcpact + taudit share correlationid",
+  "correlationid": "ecosystem-fixture-0001",
+  "producers": [
+    {
+      "producer": "driftlock",
+      "event_type": "dev.driftlock.task.completed.v1",
+      "task": "adr-0001:T01"
+    },
+    {
+      "producer": "mcpact",
+      "event_type": "dev.mcpact.tool.executed.v1",
+      "tool": "example"
+    },
+    {
+      "producer": "taudit",
+      "event_type": "dev.taudit.finding.v1",
+      "rule": "example"
+    }
+  ]
+}

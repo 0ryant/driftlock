@@ -1,0 +1,32 @@
+{
+  "purpose": "MCP stdio server exposing Driftlock tools, resources, and prompts.",
+  "public_api": [
+    "stdio binary",
+    "tools/list",
+    "tools/call",
+    "resources/list",
+    "resources/read",
+    "prompts/list",
+    "prompts/get"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "metadata/mcp.manifest.json",
+    "contracts/schemas/mcp-tools.schema.json"
+  ],
+  "crate": "driftlock-mcp",
+  "version": "0.1.0",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "taskgraph": "tasks/taskgraph.json",
+  "adr_trace": [
+    "0001-contracts-and-schema-first.md",
+    "0002-taskgraph-primary-artifact.md",
+    "0003-lane-manifest-and-conflict-model.md",
+    "0004-rust-workspace-and-mcp-stdio.md",
+    "0005-skill-pack-runtime-governance.md",
+    "0006-tdd-first-delivery.md",
+    "0007-conservative-safety-defaults.md",
+    "0008-local-state-audit-ledger.md"
+  ]
+}

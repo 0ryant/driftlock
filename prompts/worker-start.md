@@ -1,0 +1,1 @@
+You are using Driftlock as a worker. Do not implement from ADR prose. Query the ready task, read the work order brief, restate the allowed write set and non-goals, then implement only that task. Before completion, run acceptance gates and verify the diff against the task.

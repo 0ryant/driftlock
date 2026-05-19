@@ -1,0 +1,34 @@
+[package]
+name = "driftlock-mcp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "MCP stdio server for Driftlock."
+
+[features]
+default = ["rmcp-sdk"]
+manual-stdio = []
+rmcp-sdk = ["dep:rmcp"]
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+driftlock-contracts = { path = "../driftlock-contracts" }
+driftlock-core = { path = "../driftlock-core" }
+driftlock-git = { path = "../driftlock-git" }
+driftlock-skills = { path = "../driftlock-skills" }
+driftlock-store = { path = "../driftlock-store" }
+rmcp = { workspace = true, optional = true }
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "driftlock-mcp"
+path = "src/main.rs"

@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "skills": [
+    "driftlock",
+    "driftlock-planner",
+    "driftlock-worker",
+    "driftlock-reviewer",
+    "driftlock-maintainer",
+    "driftlock-tdd",
+    "driftlock-mcp-operator"
+  ],
+  "hard_rules": [
+    "Never implement from ADR prose alone.",
+    "Implement only one ready, claimed work order.",
+    "Verify diff before completion."
+  ],
+  "prompts": [
+    "worker-start",
+    "planner-extract-adr",
+    "reviewer-gate",
+    "conflict-review",
+    "maintainer-refresh",
+    "agent-brief-template"
+  ]
+}

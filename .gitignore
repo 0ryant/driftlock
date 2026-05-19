@@ -1,0 +1,12 @@
+/target/
+/.driftlock/graph.json
+/.driftlock/events.jsonl
+/.driftlock/claims.jsonl
+/.driftlock/keys/
+/.driftlock/index.json
+/.driftlock/claims.json
+/.driftlock/hosts/
+*.tmp
+.DS_Store
+.idea/
+.vscode/

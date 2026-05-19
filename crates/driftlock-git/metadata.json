@@ -1,0 +1,27 @@
+{
+  "purpose": "Repo indexing and diff path extraction.",
+  "public_api": [
+    "changed_files_from_diff",
+    "git_changed_files",
+    "index_repo"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "contracts/schemas/diff-report.schema.json"
+  ],
+  "crate": "driftlock-git",
+  "version": "0.1.0",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "taskgraph": "tasks/taskgraph.json",
+  "adr_trace": [
+    "0001-contracts-and-schema-first.md",
+    "0002-taskgraph-primary-artifact.md",
+    "0003-lane-manifest-and-conflict-model.md",
+    "0004-rust-workspace-and-mcp-stdio.md",
+    "0005-skill-pack-runtime-governance.md",
+    "0006-tdd-first-delivery.md",
+    "0007-conservative-safety-defaults.md",
+    "0008-local-state-audit-ledger.md"
+  ]
+}

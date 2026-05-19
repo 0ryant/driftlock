@@ -1,0 +1,27 @@
+{
+  "crate": "driftlock-core",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "Domain model, ADR extraction, graph, conflicts, readiness, briefs, diff verification.",
+  "public_api": [
+    "model",
+    "extractor",
+    "conflict",
+    "readiness",
+    "brief",
+    "diff"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "contracts/schemas/work-order.schema.json",
+    "contracts/schemas/taskgraph.schema.json"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-core",
+    "cargo clippy -p driftlock-core"
+  ]
+}

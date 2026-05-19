@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LaneManifest",
+  "description": "Lane manifest.",
+  "type": "object",
+  "required": [
+    "lanes",
+    "schema_version"
+  ],
+  "properties": {
+    "lanes": {
+      "description": "Lanes.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Lane"
+      }
+    },
+    "schema_version": {
+      "description": "Schema version.",
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "Lane": {
+      "description": "Lane policy.",
+      "type": "object",
+      "required": [
+        "description",
+        "exclusive",
+        "id",
+        "read_allow",
+        "write_allow"
+      ],
+      "properties": {
+        "description": {
+          "description": "Description.",
+          "type": "string"
+        },
+        "exclusive": {
+          "description": "Exclusive resources.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "id": {
+          "description": "Lane ID.",
+          "type": "string"
+        },
+        "metadata": {
+          "description": "Extensible metadata.",
+          "default": {},
+          "type": "object",
+          "additionalProperties": true
+        },
+        "read_allow": {
+          "description": "Read allowlist globs.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_allow": {
+          "description": "Write allowlist globs.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

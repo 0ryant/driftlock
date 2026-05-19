@@ -1,0 +1,383 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WorkOrder",
+  "description": "Canonical bounded implementation task.",
+  "type": "object",
+  "required": [
+    "confidence",
+    "id",
+    "intent",
+    "lane",
+    "read_set",
+    "source",
+    "status",
+    "title",
+    "write_set"
+  ],
+  "properties": {
+    "acceptance": {
+      "description": "Acceptance gates.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "description": "Extraction/inference confidence.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Confidence"
+        }
+      ]
+    },
+    "conflicts": {
+      "description": "Known conflicts.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Conflict"
+      }
+    },
+    "deps": {
+      "description": "Task dependencies.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "exclusive_resources": {
+      "description": "Exclusive resources claimed by this task.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "description": "Stable ID, normally `adr-0000:T00`.",
+      "type": "string"
+    },
+    "intent": {
+      "description": "Implementation intent.",
+      "type": "string"
+    },
+    "lane": {
+      "description": "Lane ID.",
+      "type": "string"
+    },
+    "metadata": {
+      "description": "Extensible metadata.",
+      "default": {},
+      "type": "object",
+      "additionalProperties": true
+    },
+    "non_goals": {
+      "description": "Explicit non-goals.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "read_set": {
+      "description": "Files/globs this task may read as context.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source": {
+      "description": "ADR evidence span.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/EvidenceSpan"
+        }
+      ]
+    },
+    "status": {
+      "description": "Status.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/TaskStatus"
+        }
+      ]
+    },
+    "title": {
+      "description": "Short title.",
+      "type": "string"
+    },
+    "unlocks": {
+      "description": "Tasks unlocked by completion.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "write_set": {
+      "description": "Files/globs this task may write.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "Confidence": {
+      "description": "Extraction and inference confidence.",
+      "type": "object",
+      "required": [
+        "dependency_edges",
+        "file_scope",
+        "task_extraction"
+      ],
+      "properties": {
+        "dependency_edges": {
+          "description": "Confidence in dependency edges.",
+          "type": "number",
+          "format": "float"
+        },
+        "file_scope": {
+          "description": "Confidence in file scope.",
+          "type": "number",
+          "format": "float"
+        },
+        "task_extraction": {
+          "description": "Confidence that this task follows from the ADR.",
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
+    "Conflict": {
+      "description": "Conflict edge attached to a task.",
+      "type": "object",
+      "required": [
+        "kind",
+        "reason",
+        "severity",
+        "task"
+      ],
+      "properties": {
+        "kind": {
+          "description": "Conflict kind.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ConflictKind"
+            }
+          ]
+        },
+        "reason": {
+          "description": "Human-readable reason.",
+          "type": "string"
+        },
+        "severity": {
+          "description": "Conflict severity.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ConflictSeverity"
+            }
+          ]
+        },
+        "task": {
+          "description": "Other task ID.",
+          "type": "string"
+        }
+      }
+    },
+    "ConflictKind": {
+      "description": "Conflict kind.",
+      "oneOf": [
+        {
+          "description": "Same write path.",
+          "type": "string",
+          "enum": [
+            "shared_write"
+          ]
+        },
+        {
+          "description": "Same exclusive resource.",
+          "type": "string",
+          "enum": [
+            "exclusive_resource"
+          ]
+        },
+        {
+          "description": "Generated artifact ownership risk.",
+          "type": "string",
+          "enum": [
+            "generated_artifact"
+          ]
+        },
+        {
+          "description": "API contract coupling.",
+          "type": "string",
+          "enum": [
+            "api_contract"
+          ]
+        },
+        {
+          "description": "Migration ordering risk.",
+          "type": "string",
+          "enum": [
+            "migration_order"
+          ]
+        },
+        {
+          "description": "Shared test fixture or snapshot.",
+          "type": "string",
+          "enum": [
+            "test_fixture"
+          ]
+        },
+        {
+          "description": "Semantic coupling without same file.",
+          "type": "string",
+          "enum": [
+            "semantic_coupling"
+          ]
+        },
+        {
+          "description": "Lane policy violation.",
+          "type": "string",
+          "enum": [
+            "lane_violation"
+          ]
+        },
+        {
+          "description": "Scope could not be inferred.",
+          "type": "string",
+          "enum": [
+            "unknown_scope"
+          ]
+        }
+      ]
+    },
+    "ConflictSeverity": {
+      "description": "Conflict severity.",
+      "oneOf": [
+        {
+          "description": "Blocks readiness.",
+          "type": "string",
+          "enum": [
+            "hard"
+          ]
+        },
+        {
+          "description": "Requires review but may be allowed.",
+          "type": "string",
+          "enum": [
+            "soft"
+          ]
+        },
+        {
+          "description": "Blocks by default until classified.",
+          "type": "string",
+          "enum": [
+            "unknown"
+          ]
+        }
+      ]
+    },
+    "EvidenceSpan": {
+      "description": "Evidence span tying a work order back to ADR source text.",
+      "type": "object",
+      "required": [
+        "adr",
+        "adr_revision",
+        "end_line",
+        "section",
+        "start_line"
+      ],
+      "properties": {
+        "adr": {
+          "description": "ADR path.",
+          "type": "string"
+        },
+        "adr_revision": {
+          "description": "ADR revision, commit, or scaffold marker.",
+          "type": "string"
+        },
+        "end_line": {
+          "description": "Last source line.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "evidence": {
+          "description": "Short supporting text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "section": {
+          "description": "ADR section title.",
+          "type": "string"
+        },
+        "start_line": {
+          "description": "First source line.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "TaskStatus": {
+      "description": "Work order status.",
+      "oneOf": [
+        {
+          "description": "Proposed but not canonical.",
+          "type": "string",
+          "enum": [
+            "proposed"
+          ]
+        },
+        {
+          "description": "Needs human or maintainer review.",
+          "type": "string",
+          "enum": [
+            "needs_review"
+          ]
+        },
+        {
+          "description": "Safe to claim and implement.",
+          "type": "string",
+          "enum": [
+            "ready"
+          ]
+        },
+        {
+          "description": "Claimed by an actor.",
+          "type": "string",
+          "enum": [
+            "claimed"
+          ]
+        },
+        {
+          "description": "Complete and accepted.",
+          "type": "string",
+          "enum": [
+            "complete"
+          ]
+        },
+        {
+          "description": "Blocked by dependency or policy.",
+          "type": "string",
+          "enum": [
+            "blocked"
+          ]
+        },
+        {
+          "description": "Unsafe to execute.",
+          "type": "string",
+          "enum": [
+            "unsafe"
+          ]
+        }
+      ]
+    }
+  }
+}

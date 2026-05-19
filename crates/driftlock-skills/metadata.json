@@ -1,0 +1,28 @@
+{
+  "purpose": "Embedded skill and prompt resources.",
+  "public_api": [
+    "Skill",
+    "Prompt",
+    "skills",
+    "prompts"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "metadata/skill-pack.manifest.json"
+  ],
+  "crate": "driftlock-skills",
+  "version": "0.1.0",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "taskgraph": "tasks/taskgraph.json",
+  "adr_trace": [
+    "0001-contracts-and-schema-first.md",
+    "0002-taskgraph-primary-artifact.md",
+    "0003-lane-manifest-and-conflict-model.md",
+    "0004-rust-workspace-and-mcp-stdio.md",
+    "0005-skill-pack-runtime-governance.md",
+    "0006-tdd-first-delivery.md",
+    "0007-conservative-safety-defaults.md",
+    "0008-local-state-audit-ledger.md"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "adr-0001:T01": [
+    {
+      "task": "adr-0001:T02",
+      "kind": "shared_write",
+      "severity": "hard",
+      "reason": "Shared write paths: Cargo.toml"
+    }
+  ],
+  "adr-0001:T02": [
+    {
+      "task": "adr-0001:T01",
+      "kind": "shared_write",
+      "severity": "hard",
+      "reason": "Shared write paths: Cargo.toml"
+    }
+  ]
+}

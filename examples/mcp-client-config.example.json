@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "driftlock": {
+      "command": "cargo",
+      "args": [
+        "run",
+        "-p",
+        "driftlock-mcp",
+        "--",
+        "stdio",
+        "--repo",
+        "."
+      ]
+    }
+  }
+}

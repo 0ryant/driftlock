@@ -1,0 +1,124 @@
+{
+  "schema_version": "0.1.0",
+  "server": "driftlock-mcp",
+  "transport": "stdio",
+  "tools": [
+    {
+      "name": "index_repo",
+      "description": "Index repository files and return a conservative inventory.",
+      "mutating": false
+    },
+    {
+      "name": "extract_tasks",
+      "description": "Extract proposed work orders from an ADR file.",
+      "mutating": false
+    },
+    {
+      "name": "build_task_graph",
+      "description": "Build a task graph from ADR and lane inputs.",
+      "mutating": false
+    },
+    {
+      "name": "check_conflicts",
+      "description": "Return conflict report for a task graph.",
+      "mutating": false
+    },
+    {
+      "name": "ready_tasks",
+      "description": "Return tasks ready for a lane.",
+      "mutating": false
+    },
+    {
+      "name": "agent_brief",
+      "description": "Render a bounded implementation brief for one work order.",
+      "mutating": false
+    },
+    {
+      "name": "verify_diff_against_task",
+      "description": "Check changed files against a work order write set.",
+      "mutating": false
+    },
+    {
+      "name": "list_skills",
+      "description": "List embedded Driftlock skills.",
+      "mutating": false
+    },
+    {
+      "name": "get_skill",
+      "description": "Return one embedded Driftlock skill.",
+      "mutating": false
+    },
+    {
+      "name": "export_schemas",
+      "description": "Return the contract schema bundle.",
+      "mutating": false
+    },
+    {
+      "name": "claim_task",
+      "description": "Claim a ready work order.",
+      "mutating": true
+    },
+    {
+      "name": "release_task",
+      "description": "Release a task claim.",
+      "mutating": true
+    },
+    {
+      "name": "complete_task",
+      "description": "Complete a claimed task after diff verification.",
+      "mutating": true
+    }
+  ],
+  "resources": [
+    {
+      "uri": "driftlock://schemas/taskgraph",
+      "description": "TaskGraph JSON Schema"
+    },
+    {
+      "uri": "driftlock://schemas/work-order",
+      "description": "WorkOrder JSON Schema"
+    },
+    {
+      "uri": "driftlock://schemas/lane-manifest",
+      "description": "LaneManifest JSON Schema"
+    },
+    {
+      "uri": "driftlock://skills/worker",
+      "description": "Worker skill"
+    },
+    {
+      "uri": "driftlock://skills/planner",
+      "description": "Planner skill"
+    },
+    {
+      "uri": "driftlock://skills/reviewer",
+      "description": "Reviewer skill"
+    },
+    {
+      "uri": "driftlock://skills/maintainer",
+      "description": "Maintainer skill"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "driftlock.worker_start",
+      "description": "Start a worker from a ready claimed work order."
+    },
+    {
+      "name": "driftlock.planner_extract_adr",
+      "description": "Extract candidate work orders from an ADR."
+    },
+    {
+      "name": "driftlock.reviewer_gate",
+      "description": "Review a diff against a work order."
+    },
+    {
+      "name": "driftlock.conflict_review",
+      "description": "Analyze hard/soft/unknown conflicts."
+    },
+    {
+      "name": "driftlock.maintainer_refresh",
+      "description": "Refresh graph and resolve stale claims."
+    }
+  ]
+}

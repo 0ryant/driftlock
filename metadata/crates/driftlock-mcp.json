@@ -1,0 +1,28 @@
+{
+  "crate": "driftlock-mcp",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "MCP stdio server exposing Driftlock tools, resources, and prompts.",
+  "public_api": [
+    "stdio binary",
+    "tools/list",
+    "tools/call",
+    "resources/list",
+    "resources/read",
+    "prompts/list",
+    "prompts/get"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "metadata/mcp.manifest.json",
+    "contracts/schemas/mcp-tools.schema.json"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-mcp",
+    "cargo clippy -p driftlock-mcp"
+  ]
+}

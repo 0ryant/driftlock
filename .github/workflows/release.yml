@@ -1,0 +1,112 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            name: driftlock-linux-x86_64
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            name: driftlock-macos-aarch64
+            archive_ext: tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - run: bash scripts/harden.sh
+      - run: cargo build --release -p driftlock-cli -p driftlock-mcp --locked
+      - run: bash scripts/release_smoke.sh
+      - name: Package release binaries
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp target/release/driftlock target/release/driftlock-mcp dist/
+          (cd dist && shasum -a 256 driftlock driftlock-mcp > SHA256SUMS)
+          tar -czf "${{ matrix.name }}.${{ matrix.archive_ext }}" -C dist driftlock driftlock-mcp SHA256SUMS
+      - name: Attest binary provenance (SLSA)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/driftlock
+            dist/driftlock-mcp
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            dist/driftlock
+            dist/driftlock-mcp
+            dist/SHA256SUMS
+            ${{ matrix.name }}.${{ matrix.archive_ext }}
+
+  sbom:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - name: Generate SPDX SBOM
+        run: bash scripts/ci/generate_sbom.sh driftlock-${{ github.ref_name }}.spdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: driftlock-sbom
+          path: driftlock-${{ github.ref_name }}.spdx.json
+      - name: Attest SBOM
+        uses: actions/attest-sbom@v2
+        with:
+          sbom-path: driftlock-${{ github.ref_name }}.spdx.json
+
+  github-release:
+    runs-on: ubuntu-latest
+    needs: [build, sbom]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: driftlock-sbom
+          path: release-assets
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*
+            release-assets/*
+          generate_release_notes: true
+
+  publish-crates:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: bash scripts/harden.sh
+      - name: Publish library crates (dependency order)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+            echo "skip: CARGO_REGISTRY_TOKEN not configured"
+            exit 0
+          fi
+          for pkg in driftlock-contracts driftlock-git driftlock-skills driftlock-core driftlock-store driftlock-cli; do
+            cargo publish -p "$pkg" --locked
+          done

@@ -1,0 +1,10 @@
+{
+  "event": "dev.driftlock.task.claimed.v1",
+  "at": "2026-05-19T12:00:00Z",
+  "actor": "agent-1",
+  "task": "adr-0001:T01",
+  "metadata": {
+    "correlationid": "corr-test-001",
+    "provenanceproducer": "driftlock"
+  }
+}

@@ -1,0 +1,54 @@
+schema_version = "0.1.0"
+
+[[lanes]]
+id = "core"
+description = "Domain contracts, extraction, graph, conflicts, readiness, briefs, and verification."
+write_allow = [
+  "crates/driftlock-core/**",
+  "contracts/schemas/**",
+  "contracts/examples/**"
+]
+read_allow = [
+  "docs/adrs/**",
+  "tasks/**",
+  "lanes/**"
+]
+exclusive = [
+  "contracts/schemas/**",
+  "Cargo.lock"
+]
+
+[[lanes]]
+id = "git"
+description = "Repo indexing and diff parsing helpers."
+write_allow = ["crates/driftlock-git/**"]
+read_allow = ["crates/driftlock-core/**", "examples/**"]
+exclusive = []
+
+[[lanes]]
+id = "contracts"
+description = "Schema export and contract fixtures."
+write_allow = ["crates/driftlock-contracts/**", "contracts/**"]
+read_allow = ["crates/driftlock-core/**", "docs/adrs/**"]
+exclusive = ["contracts/schemas/**"]
+
+[[lanes]]
+id = "skills"
+description = "Blessed agent skills and MCP prompt templates."
+write_allow = ["skills/**", "prompts/**", "crates/driftlock-skills/**"]
+read_allow = ["docs/**", "tasks/**"]
+exclusive = ["skills/**"]
+
+[[lanes]]
+id = "cli"
+description = "CLI workflows and local automation."
+write_allow = ["crates/driftlock-cli/**", "scripts/**"]
+read_allow = ["crates/driftlock-core/**", "crates/driftlock-git/**", "contracts/**"]
+exclusive = []
+
+[[lanes]]
+id = "mcp"
+description = "MCP stdio server, resources, prompts, and tool contracts."
+write_allow = ["crates/driftlock-mcp/**", "metadata/mcp.manifest.json"]
+read_allow = ["crates/driftlock-core/**", "crates/driftlock-skills/**", "contracts/**"]
+exclusive = ["metadata/mcp.manifest.json"]

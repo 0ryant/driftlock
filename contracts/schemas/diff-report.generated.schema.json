@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DiffReport",
+  "description": "Diff verification report.",
+  "type": "object",
+  "required": [
+    "allowed",
+    "task_id",
+    "touched_files",
+    "violations"
+  ],
+  "properties": {
+    "allowed": {
+      "description": "Whether the diff is allowed.",
+      "type": "boolean"
+    },
+    "task_id": {
+      "description": "Task ID.",
+      "type": "string"
+    },
+    "touched_files": {
+      "description": "Touched files.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "violations": {
+      "description": "Violations.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DiffViolation"
+      }
+    },
+    "warnings": {
+      "description": "Warnings.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "definitions": {
+    "DiffViolation": {
+      "description": "Diff violation.",
+      "type": "object",
+      "required": [
+        "path",
+        "reason"
+      ],
+      "properties": {
+        "path": {
+          "description": "Path that violates the task boundary.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Reason.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

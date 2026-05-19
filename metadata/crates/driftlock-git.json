@@ -1,0 +1,23 @@
+{
+  "crate": "driftlock-git",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "Repo indexing and diff path extraction.",
+  "public_api": [
+    "changed_files_from_diff",
+    "git_changed_files",
+    "index_repo"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "contracts/schemas/diff-report.schema.json"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-git",
+    "cargo clippy -p driftlock-git"
+  ]
+}

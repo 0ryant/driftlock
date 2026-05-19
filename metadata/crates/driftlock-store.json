@@ -1,0 +1,6 @@
+{
+  "crate": "driftlock-store",
+  "version": "0.1.0",
+  "stability": "beta",
+  "description": "Persistence for graph, claims, and events under .driftlock/"
+}

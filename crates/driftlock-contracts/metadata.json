@@ -1,0 +1,26 @@
+{
+  "purpose": "Schema export and contract fixtures.",
+  "public_api": [
+    "schema_bundle",
+    "write_schemas"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "contracts/schemas/*.schema.json"
+  ],
+  "crate": "driftlock-contracts",
+  "version": "0.1.0",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "taskgraph": "tasks/taskgraph.json",
+  "adr_trace": [
+    "0001-contracts-and-schema-first.md",
+    "0002-taskgraph-primary-artifact.md",
+    "0003-lane-manifest-and-conflict-model.md",
+    "0004-rust-workspace-and-mcp-stdio.md",
+    "0005-skill-pack-runtime-governance.md",
+    "0006-tdd-first-delivery.md",
+    "0007-conservative-safety-defaults.md",
+    "0008-local-state-audit-ledger.md"
+  ]
+}

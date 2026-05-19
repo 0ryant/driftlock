@@ -1,0 +1,26 @@
+{
+  "purpose": "Local .driftlock persistence: graph, claims, audit events.",
+  "public_api": [
+    "init_state_dir",
+    "load_graph",
+    "save_graph",
+    "append_event",
+    "record_claim",
+    "release_claim",
+    "complete_claim"
+  ],
+  "stability": "beta",
+  "contracts": [
+    "contracts/schemas/event.schema.json",
+    "contracts/schemas/claim.schema.json",
+    "contracts/schemas/taskgraph.schema.json"
+  ],
+  "crate": "driftlock-store",
+  "version": "0.1.0",
+  "contract_version": "0.1.0",
+  "skill_pack_version": "0.1.0",
+  "taskgraph": "tasks/taskgraph.json",
+  "adr_trace": [
+    "0008-local-state-audit-ledger.md"
+  ]
+}

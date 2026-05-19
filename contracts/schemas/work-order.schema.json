@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/work-order.schema.json",
+  "title": "Driftlock WorkOrder",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "source",
+    "intent",
+    "lane",
+    "status",
+    "write_set",
+    "read_set",
+    "deps",
+    "unlocks",
+    "conflicts",
+    "acceptance",
+    "non_goals",
+    "confidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^adr-[0-9]{4}:T[0-9]{2}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "$ref": "#/$defs/evidenceSpan"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lane": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "proposed",
+        "needs_review",
+        "ready",
+        "claimed",
+        "complete",
+        "blocked",
+        "unsafe"
+      ]
+    },
+    "write_set": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "read_set": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "exclusive_resources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "deps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "unlocks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conflict"
+      }
+    },
+    "acceptance": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "non_goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "evidenceSpan": {
+      "type": "object",
+      "required": [
+        "adr",
+        "adr_revision",
+        "section",
+        "start_line",
+        "end_line"
+      ],
+      "properties": {
+        "adr": {
+          "type": "string"
+        },
+        "adr_revision": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string"
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string"
+        }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "required": [
+        "task",
+        "kind",
+        "severity",
+        "reason"
+      ],
+      "properties": {
+        "task": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "shared_write",
+            "exclusive_resource",
+            "generated_artifact",
+            "api_contract",
+            "migration_order",
+            "test_fixture",
+            "semantic_coupling",
+            "lane_violation",
+            "unknown_scope"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "hard",
+            "soft",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "required": [
+        "task_extraction",
+        "file_scope",
+        "dependency_edges"
+      ],
+      "properties": {
+        "task_extraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "file_scope": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "dependency_edges": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

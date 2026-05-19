@@ -1,0 +1,22 @@
+{
+  "crate": "driftlock-contracts",
+  "version": "0.1.0",
+  "edition": "2021",
+  "license": "Apache-2.0 OR MIT",
+  "purpose": "Schema export and contract fixtures.",
+  "public_api": [
+    "schema_bundle",
+    "write_schemas"
+  ],
+  "stability": "scaffold",
+  "contracts": [
+    "contracts/schemas/*.schema.json"
+  ],
+  "owners": [
+    "driftlock-maintainers"
+  ],
+  "required_checks": [
+    "cargo test -p driftlock-contracts",
+    "cargo clippy -p driftlock-contracts"
+  ]
+}

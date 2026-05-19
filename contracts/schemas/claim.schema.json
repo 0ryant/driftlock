@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://driftlock.dev/schemas/0.1.0/claim.schema.json",
+  "title": "Driftlock Claim",
+  "type": "object",
+  "required": [
+    "task",
+    "agent",
+    "claimed_at",
+    "base_ref",
+    "write_set",
+    "status"
+  ],
+  "properties": {
+    "task": {
+      "type": "string"
+    },
+    "agent": {
+      "type": "string"
+    },
+    "claimed_at": {
+      "type": "string"
+    },
+    "base_ref": {
+      "type": "string"
+    },
+    "write_set": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": [
+        "active",
+        "released",
+        "completed",
+        "expired"
+      ]
+    },
+    "expires_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
