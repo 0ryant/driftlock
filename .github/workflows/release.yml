@@ -44,7 +44,7 @@ jobs:
           subject-path: |
             dist/driftlock
             dist/driftlock-mcp
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.name }}
           path: |
@@ -61,7 +61,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.88.0
       - name: Generate SPDX SBOM
         run: bash scripts/ci/generate_sbom.sh driftlock-${{ github.ref_name }}.spdx.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: driftlock-sbom
           path: driftlock-${{ github.ref_name }}.spdx.json
