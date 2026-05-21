@@ -19,6 +19,17 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Returns MCP-compatible structured content.
+///
+/// Some hosts reject array/scalar `structuredContent`; preserve JSON objects and
+/// wrap everything else in a record.
+pub fn tool_structured_content(value: Value) -> Value {
+    match value {
+        Value::Object(_) => value,
+        other => json!({"result": other}),
+    }
+}
+
 /// Driftlock tool/resource implementation shared across MCP transports.
 #[derive(Debug, Clone)]
 pub struct DriftlockService {

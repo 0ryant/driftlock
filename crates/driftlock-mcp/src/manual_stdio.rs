@@ -8,7 +8,7 @@
 //!
 //! This module intentionally avoids printing anything except JSON-RPC messages to stdout.
 
-use crate::service::DriftlockService;
+use crate::service::{tool_structured_content, DriftlockService};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -92,7 +92,7 @@ impl ManualMcpServer {
         let result = match req.method.as_str() {
             "initialize" => self.initialize(),
             "notifications/initialized" => return None,
-            "tools/list" => Ok(json!({"tools": self.service.tool_definitions()})),
+            "tools/list" => Ok(json!({"tools": DriftlockService::tool_definitions()})),
             "tools/call" => self.call_tool(req.params.unwrap_or_else(|| json!({}))),
             "resources/list" => Ok(json!({"resources": self.service.resources()})),
             "resources/read" => self.read_resource(req.params.unwrap_or_else(|| json!({}))),
@@ -130,7 +130,7 @@ impl ManualMcpServer {
             .and_then(Value::as_str)
             .ok_or_else(|| anyhow::anyhow!("missing tool name"))?;
         let args = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
-        let structured = self.service.call_tool(name, args)?;
+        let structured = tool_structured_content(self.service.call_tool(name, args)?);
         Ok(json!({
             "content": [{"type": "text", "text": serde_json::to_string_pretty(&structured)?}],
             "structuredContent": structured,
