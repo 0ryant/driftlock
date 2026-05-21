@@ -7,7 +7,7 @@
     clippy::needless_pass_by_value
 )]
 
-use crate::service::DriftlockService;
+use crate::service::{tool_structured_content, DriftlockService};
 use rmcp::{
     model::{
         Annotated, CallToolResult, Content, GetPromptResult, ListPromptsResult,
@@ -70,7 +70,8 @@ impl ServerHandler for DriftlockRmcp {
         async move {
             let args = request.arguments.map(Value::Object).unwrap_or_else(|| json!({}));
             match self.service.call_tool(&request.name, args) {
-                Ok(structured) => {
+                Ok(value) => {
+                    let structured = tool_structured_content(value);
                     let text = serde_json::to_string_pretty(&structured)
                         .map_err(|e| McpError::internal_error(e.to_string(), None))?;
                     Ok(CallToolResult {

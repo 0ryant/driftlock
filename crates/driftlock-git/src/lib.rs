@@ -20,7 +20,11 @@ pub struct RepoIndex {
 pub fn index_repo(root: impl AsRef<Path>) -> Result<RepoIndex> {
     let root = root.as_ref();
     let mut files = Vec::new();
-    for entry in WalkBuilder::new(root).hidden(false).build() {
+    for entry in WalkBuilder::new(root)
+        .hidden(false)
+        .filter_entry(|entry| entry.file_name().to_string_lossy() != ".git")
+        .build()
+    {
         let entry = entry?;
         if entry.file_type().is_some_and(|ft| ft.is_file()) {
             let rel = entry.path().strip_prefix(root).unwrap_or(entry.path());
@@ -101,11 +105,33 @@ pub fn changed_files_from_diff(diff: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::changed_files_from_diff;
+    use super::{changed_files_from_diff, index_repo};
+    use std::fs;
 
     #[test]
     fn extracts_paths_from_unified_diff() {
         let diff = "diff --git a/src/lib.rs b/src/lib.rs\n--- a/src/lib.rs\n+++ b/src/lib.rs\n";
         assert_eq!(changed_files_from_diff(diff), vec!["src/lib.rs"]);
+    }
+
+    #[test]
+    fn index_repo_excludes_git_object_inventory() {
+        let root =
+            std::env::temp_dir().join(format!("driftlock-index-repo-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join(".git/objects/aa")).unwrap();
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(root.join(".git/objects/aa/blob"), "object").unwrap();
+        fs::write(root.join("src/lib.rs"), "pub fn ok() {}\n").unwrap();
+
+        let index = index_repo(&root).unwrap();
+
+        assert!(index.files.contains(&"src/lib.rs".to_string()));
+        assert!(
+            index.files.iter().all(|path| !path.starts_with(".git/")),
+            "index included .git entries: {:?}",
+            index.files
+        );
+        let _ = fs::remove_dir_all(root);
     }
 }

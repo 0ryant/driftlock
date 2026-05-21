@@ -214,6 +214,7 @@ fn main() -> Result<()> {
     match cli.command {
         Command::Init { repo } => {
             let paths = init_state_dir(&repo)?;
+            seed_graph_from_canonical_ledger(&paths)?;
             println!("initialized {}", paths.state_dir.display());
             Ok(())
         }
@@ -411,6 +412,21 @@ fn default_graph_path(paths: &StatePaths) -> PathBuf {
     driftlock_store::graph_path(paths)
 }
 
+fn seed_graph_from_canonical_ledger(paths: &StatePaths) -> Result<bool> {
+    let graph_path = default_graph_path(paths);
+    if graph_path.exists() {
+        return Ok(false);
+    }
+    let canonical = paths.repo_root.join("tasks/taskgraph.json");
+    if !canonical.exists() {
+        return Ok(false);
+    }
+    let graph = read_graph_file(&canonical)
+        .with_context(|| format!("read canonical taskgraph {}", canonical.display()))?;
+    save_graph(paths, &graph)?;
+    Ok(true)
+}
+
 fn load_graph_for_repo(repo: &Path, graph: Option<PathBuf>) -> Result<TaskGraph> {
     if let Some(path) = graph {
         return read_graph_file(&path);
@@ -450,4 +466,29 @@ fn touched_files(
         return Ok(changed);
     }
     driftlock_git::git_changed_files(repo, "HEAD")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn init_seed_graph_from_canonical_ledger_when_missing() {
+        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let repo = std::env::temp_dir()
+            .join(format!("driftlock-init-seed-test-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(repo.join("tasks")).unwrap();
+        fs::write(repo.join("tasks/taskgraph.json"), include_str!("../../../tasks/taskgraph.json"))
+            .unwrap();
+
+        let paths = init_state_dir(&repo).unwrap();
+        assert!(seed_graph_from_canonical_ledger(&paths).unwrap());
+        assert!(paths.state_dir.join("graph.json").is_file());
+        let graph = load_graph(&paths).unwrap();
+        assert!(!graph.tasks.is_empty());
+        assert!(!seed_graph_from_canonical_ledger(&paths).unwrap());
+
+        let _ = fs::remove_dir_all(repo);
+    }
 }
