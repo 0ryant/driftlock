@@ -14,11 +14,11 @@ rmcp-sdk = ["dep:rmcp"]
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
-driftlock-contracts = { path = "../driftlock-contracts" }
-driftlock-core = { path = "../driftlock-core" }
-driftlock-git = { path = "../driftlock-git" }
-driftlock-skills = { path = "../driftlock-skills" }
-driftlock-store = { path = "../driftlock-store" }
+driftlock-contracts = { version = "0.1.0", path = "../driftlock-contracts" }
+driftlock-core = { version = "0.1.0", path = "../driftlock-core" }
+driftlock-git = { version = "0.1.0", path = "../driftlock-git" }
+driftlock-skills = { version = "0.1.0", path = "../driftlock-skills" }
+driftlock-store = { version = "0.1.0", path = "../driftlock-store" }
 rmcp = { workspace = true, optional = true }
 schemars.workspace = true
 serde.workspace = true

@@ -17,16 +17,19 @@ Publish in dependency order (automated on tag in `release.yml` when `CARGO_REGIS
 4. `driftlock-core`
 5. `driftlock-store`
 6. `driftlock-cli`
+7. `driftlock-mcp`
 
 ```bash
 cd /path/to/driftlock
-for pkg in driftlock-contracts driftlock-git driftlock-skills driftlock-core driftlock-store driftlock-cli; do
+for pkg in driftlock-contracts driftlock-git driftlock-skills driftlock-core driftlock-store driftlock-cli driftlock-mcp; do
   cargo publish -p "$pkg" --dry-run
 done
-tsafe exec -- bash -c 'for pkg in driftlock-contracts driftlock-git driftlock-skills driftlock-core driftlock-store driftlock-cli; do cargo publish -p "$pkg" --locked; done'
+tsafe exec -- bash -c 'for pkg in driftlock-contracts driftlock-git driftlock-skills driftlock-core driftlock-store driftlock-cli driftlock-mcp; do cargo publish -p "$pkg" --locked; done'
 ```
 
-PRs run `publish-dry-run.yml`. Binary `driftlock-mcp` ships via GitHub release artifacts.
+PRs run `publish-dry-run.yml`. The `driftlock-mcp` binary is also attached to
+GitHub release artifacts; publishing it to crates.io additionally enables
+`cargo install driftlock-mcp`.
 
 ## GitHub release
 
