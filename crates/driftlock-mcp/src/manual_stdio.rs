@@ -113,13 +113,13 @@ impl ManualMcpServer {
 
     fn initialize(&self) -> Result<Value> {
         Ok(json!({
-            "protocolVersion": "2025-06-18",
+            "protocolVersion": crate::MCP_PROTOCOL_VERSION,
             "capabilities": {
                 "tools": {"listChanged": false},
                 "resources": {"listChanged": false},
                 "prompts": {"listChanged": false}
             },
-            "serverInfo": {"name": "driftlock-mcp", "version": env!("CARGO_PKG_VERSION")},
+            "serverInfo": {"name": crate::SERVER_NAME, "version": crate::SERVER_VERSION},
             "instructions": DriftlockService::instructions()
         }))
     }
