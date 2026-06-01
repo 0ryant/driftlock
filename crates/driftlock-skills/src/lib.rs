@@ -39,11 +39,7 @@ pub fn skills() -> &'static [Skill] {
             uri: "driftlock://skills/planner",
             body: generated::SKILL_PLANNER,
         },
-        Skill {
-            name: "worker",
-            uri: "driftlock://skills/worker",
-            body: generated::SKILL_WORKER,
-        },
+        Skill { name: "worker", uri: "driftlock://skills/worker", body: generated::SKILL_WORKER },
         Skill {
             name: "reviewer",
             uri: "driftlock://skills/reviewer",
@@ -54,11 +50,7 @@ pub fn skills() -> &'static [Skill] {
             uri: "driftlock://skills/maintainer",
             body: generated::SKILL_MAINTAINER,
         },
-        Skill {
-            name: "tdd",
-            uri: "driftlock://skills/tdd",
-            body: generated::SKILL_TDD,
-        },
+        Skill { name: "tdd", uri: "driftlock://skills/tdd", body: generated::SKILL_TDD },
         Skill {
             name: "mcp-operator",
             uri: "driftlock://skills/mcp-operator",
