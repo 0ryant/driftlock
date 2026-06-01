@@ -51,7 +51,8 @@ fn resolve(embed: &Path, fallback_root: &Path, rel: &str) -> PathBuf {
 }
 
 fn embed_file(out: &mut String, const_name: &str, path: &Path) {
-    let body = fs::read_to_string(path)
-        .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let body = fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    // pre-existing: build.rs generated output, trivial refactor not warranted
+    #[allow(clippy::format_push_string)]
     out.push_str(&format!("pub const {const_name}: &str = {body:?};\n"));
 }
