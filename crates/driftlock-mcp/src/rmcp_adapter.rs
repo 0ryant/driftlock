@@ -10,9 +10,10 @@
 use crate::service::{tool_structured_content, DriftlockService};
 use rmcp::{
     model::{
-        Annotated, CallToolResult, Content, GetPromptResult, ListPromptsResult,
+        Annotated, CallToolResult, Content, GetPromptResult, Implementation, ListPromptsResult,
         ListResourcesResult, ListToolsResult, Prompt, PromptMessage, PromptMessageRole,
-        RawResource, ReadResourceResult, ResourceContents, ServerCapabilities, ServerInfo,
+        ProtocolVersion, RawResource, ReadResourceResult, ResourceContents, ServerCapabilities,
+        ServerInfo,
     },
     transport::stdio,
     ErrorData as McpError, ServerHandler, ServiceExt,
@@ -38,13 +39,18 @@ impl DriftlockRmcp {
 impl ServerHandler for DriftlockRmcp {
     fn get_info(&self) -> ServerInfo {
         ServerInfo {
+            protocol_version: protocol_version(),
             instructions: Some(DriftlockService::instructions().into()),
             capabilities: ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
                 .enable_prompts()
                 .build(),
-            ..Default::default()
+            server_info: Implementation {
+                name: crate::SERVER_NAME.to_string(),
+                version: crate::SERVER_VERSION.to_string(),
+                ..Default::default()
+            },
         }
     }
 
@@ -186,6 +192,18 @@ impl ServerHandler for DriftlockRmcp {
             })
         }
     }
+}
+
+/// Builds the advertised [`ProtocolVersion`] from the shared crate constant so
+/// the rmcp transport never drifts from the manual-stdio transport.
+///
+/// `ProtocolVersion` only exposes a string constructor through `Deserialize`,
+/// so we round-trip the constant through serde. Falls back to the rmcp default
+/// only if the constant is somehow unparseable (it is a compile-time literal,
+/// so this branch is unreachable in practice and is asserted in tests).
+fn protocol_version() -> ProtocolVersion {
+    serde_json::from_value(Value::String(crate::MCP_PROTOCOL_VERSION.to_string()))
+        .unwrap_or_default()
 }
 
 /// Runs the rmcp adapter over stdio.
