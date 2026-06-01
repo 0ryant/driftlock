@@ -1,0 +1,49 @@
+# Enforce LF line endings across the repository.
+#
+# Why: rustfmt.toml sets `newline_style = "Unix"` and .editorconfig sets
+# `end_of_line = lf`, but nothing enforced this at the Git level. On a host with
+# `core.autocrlf=true` (the Windows default) every checkout rewrites text files
+# -- including *.rs -- with CRLF, so `cargo fmt --all -- --check` (the quality
+# gate in .github/workflows/quality.yml) fails on every fresh checkout until
+# `cargo fmt` is run by hand. Git even reports the tree as clean, so the failure
+# is invisible until the gate runs. Pinning `eol=lf` here overrides autocrlf so
+# the working tree is LF on every platform and the gate stays green.
+
+# Default: auto-detect text vs binary, store LF in the repo, and check out text
+# files with LF everywhere. Files Git detects as binary are left untouched.
+* text=auto eol=lf
+
+# Source and config formats present in this repo. Declaring them explicitly
+# keeps the gate-relevant files correct even if content auto-detection misfires.
+*.rs     text eol=lf
+*.toml   text eol=lf
+*.lock   text eol=lf
+*.md     text eol=lf
+*.json   text eol=lf
+*.jsonl  text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.py     text eol=lf
+*.txt    text eol=lf
+
+# Shell scripts must stay LF to remain runnable on Unix even when checked out
+# on Windows.
+*.sh     text eol=lf
+
+# Extensionless text files in this repo.
+Makefile    text eol=lf
+justfile    text eol=lf
+CODEOWNERS  text eol=lf
+LICENSE-*   text eol=lf
+
+# Safety net: never line-ending-normalize common binary types. `* text=auto`
+# already detects these, but declaring them is cheap insurance against a future
+# binary asset being corrupted by the eol rule above.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
