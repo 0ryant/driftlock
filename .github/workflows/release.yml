@@ -26,7 +26,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.100.0
       - uses: Swatinem/rust-cache@v2
       - run: bash scripts/harden.sh
       - run: cargo build --release -p driftlock-cli -p driftlock-mcp --locked
@@ -58,7 +58,7 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.100.0
       - name: Generate SPDX SBOM
         run: bash scripts/ci/generate_sbom.sh driftlock-${{ github.ref_name }}.spdx.json
       - uses: actions/upload-artifact@v7
@@ -96,7 +96,7 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: dtolnay/rust-toolchain@1.100.0
       - run: bash scripts/harden.sh
       - name: Publish library crates (dependency order)
         env:
