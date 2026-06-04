@@ -38,20 +38,18 @@ impl DriftlockRmcp {
 
 impl ServerHandler for DriftlockRmcp {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: protocol_version(),
-            instructions: Some(DriftlockService::instructions().into()),
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .enable_prompts()
-                .build(),
-            server_info: Implementation {
-                name: crate::SERVER_NAME.to_string(),
-                version: crate::SERVER_VERSION.to_string(),
-                ..Default::default()
-            },
-        }
+        let capabilities = ServerCapabilities::builder()
+            .enable_tools()
+            .enable_resources()
+            .enable_prompts()
+            .build();
+        ServerInfo::new(capabilities)
+            .with_protocol_version(protocol_version())
+            .with_instructions(DriftlockService::instructions())
+            .with_server_info(Implementation::new(
+                crate::SERVER_NAME.to_string(),
+                crate::SERVER_VERSION.to_string(),
+            ))
     }
 
     fn list_tools(
@@ -78,14 +76,7 @@ impl ServerHandler for DriftlockRmcp {
             match self.service.call_tool(&request.name, args) {
                 Ok(value) => {
                     let structured = tool_structured_content(value);
-                    let text = serde_json::to_string_pretty(&structured)
-                        .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-                    Ok(CallToolResult {
-                        content: vec![Content::text(text)],
-                        structured_content: Some(structured),
-                        is_error: Some(false),
-                        meta: None,
-                    })
+                    Ok(CallToolResult::structured(structured))
                 }
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(err.to_string())])),
             }
@@ -136,14 +127,9 @@ impl ServerHandler for DriftlockRmcp {
                 .service
                 .read_resource(&uri)
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            Ok(ReadResourceResult {
-                contents: vec![ResourceContents::TextResourceContents {
-                    uri,
-                    mime_type: Some(mime.to_string()),
-                    text,
-                    meta: None,
-                }],
-            })
+            Ok(ReadResourceResult::new(vec![
+                ResourceContents::text(text, uri).with_mime_type(mime.to_string())
+            ]))
         }
     }
 
@@ -158,17 +144,14 @@ impl ServerHandler for DriftlockRmcp {
                 .prompts()
                 .into_iter()
                 .filter_map(|p| {
-                    Some(Prompt {
-                        name: p.get("name")?.as_str()?.to_string(),
-                        title: p.get("title").and_then(Value::as_str).map(str::to_string),
-                        description: p
-                            .get("description")
-                            .and_then(Value::as_str)
-                            .map(str::to_string),
-                        arguments: None,
-                        icons: None,
-                        meta: None,
-                    })
+                    let name = p.get("name")?.as_str()?.to_string();
+                    let description =
+                        p.get("description").and_then(Value::as_str).map(str::to_string);
+                    let mut prompt = Prompt::new(name, description, None);
+                    if let Some(title) = p.get("title").and_then(Value::as_str) {
+                        prompt = prompt.with_title(title);
+                    }
+                    Some(prompt)
                 })
                 .collect();
             Ok(ListPromptsResult { prompts, next_cursor: None, meta: None })
@@ -186,10 +169,8 @@ impl ServerHandler for DriftlockRmcp {
                 .service
                 .get_prompt(&name, request.arguments.as_ref())
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            Ok(GetPromptResult {
-                description: Some(name),
-                messages: vec![PromptMessage::new_text(PromptMessageRole::User, body)],
-            })
+            Ok(GetPromptResult::new(vec![PromptMessage::new_text(PromptMessageRole::User, body)])
+                .with_description(name))
         }
     }
 }
@@ -217,15 +198,13 @@ fn json_tool_to_rmcp(def: Value) -> Option<rmcp::model::Tool> {
     let name = def.get("name")?.as_str()?;
     let description = def.get("description").and_then(Value::as_str);
     let schema = def.get("inputSchema")?.as_object()?.clone();
-    Some(rmcp::model::Tool {
-        name: Cow::Owned(name.to_string()),
-        title: def.get("title").and_then(Value::as_str).map(str::to_string),
-        description: description.map(|d| Cow::Owned(d.to_string())),
-        input_schema: Arc::new(schema),
-        output_schema: None,
-        annotations: None,
-        execution: None,
-        icons: None,
-        meta: None,
-    })
+    let mut tool = rmcp::model::Tool::new_with_raw(
+        Cow::Owned(name.to_string()),
+        description.map(|d| Cow::Owned(d.to_string())),
+        Arc::new(schema),
+    );
+    if let Some(title) = def.get("title").and_then(Value::as_str) {
+        tool = tool.with_title(title);
+    }
+    Some(tool)
 }
