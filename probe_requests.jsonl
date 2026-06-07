@@ -1,0 +1,4 @@
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"portability-probe","version":"0"}}}
+{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"driftlock://schemas/taskgraph"}}
+{"jsonrpc":"2.0","id":3,"method":"resources/read","params":{"uri":"driftlock://schemas/work-order"}}
+{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"driftlock://schemas/lane-manifest"}}
