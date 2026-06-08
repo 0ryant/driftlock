@@ -21,13 +21,10 @@ suite, and it exists today, not as a deck but as code:
 
 - **Cortex:** longitudinal supervisory memory for agents. The thing that remembers
   so the agents don't have to keep being reminded.
-- **AXIOM:** governed orchestration. Cryptographically-signed run-contracts and
-  invocation-time identity attestation on every agent action. Nothing runs that can't
-  prove who it is and what it's allowed to do.
 - **CellOS:** narrow-authority execution cells with a kubectl-style CLI. Agents get
   exactly the blast radius you grant them and not one syscall more.
 
-Those three are the headline acts, but they sit on top of twenty-odd other apps I've
+Those two are just the headline acts; they sit on top of twenty-odd other apps I've
 deliberately engineered against the specific failure modes I keep watching AI walk
 into. I'll happily name every one and what it does in a separate email if you're
 interested; I'm just trying to keep this one focused on the bit with a price tag.
@@ -108,7 +105,14 @@ Co-Founder, Algol
 
 **Private (do NOT invite him to browse the source):**
 - `cortex`, `CellOS`, `algol-substrate`, `axiom-composer`, `aegress` are private. The
-  email describes them as products (fine) but never links them, to avoid a dead link.
+  email names Cortex and CellOS as products (fine) but never links them, to avoid a
+  dead link.
+
+**Removed from email:**
+- AXIOM (governed orchestration) pulled at Ryan's call: backburnered and less
+  interesting than other in-flight work. Named products are now Cortex + CellOS, with
+  the "twenty-odd other apps" line carrying the rest of the suite's depth. Slot for a
+  more interesting third headline product is open if Ryan wants one named.
 
 **Open decisions before sending:**
 - **OSF link:** CONFIRMED PUBLIC. Verified to render in a logged-out private-browsing
