@@ -29,9 +29,11 @@ suite, and it exists today — not as a deck, as code:
 
 All of it on a shared Rust substrate, and — the bit most early teams quietly skip —
 we hold it to **pre-registered empirical evaluations**. Frozen protocol, hypotheses
-and thresholds locked *before* the results exist, the whole open-science ritual. One
-of those evals is registered on OSF and I'm happy to send it over; it's the most
-honest receipt I can offer that we measure things here rather than vibe them.
+and thresholds locked *before* the results exist, the whole open-science ritual.
+Here's one, public, no login required: https://osf.io/gesyh/. It is genuinely titled
+*"Typed Strategic Families Produce Distinct Failure Morphologies"*, which tells you
+roughly how much fun we have on a Friday — but it's the most honest receipt I can
+offer that we measure things here rather than vibe them.
 
 Here's the bet I actually want to put a GPU behind. The interesting frontier right
 now isn't "bigger model." It's that a *smaller* model, wrapped in the right
@@ -93,12 +95,10 @@ Co-Founder, Algol
   email describes them as products (fine) but never links them, to avoid a dead link.
 
 **Open decisions before sending:**
-- **OSF link:** email currently *offers the registration on request* rather than
-  hardcoding the DOI, because OSF 403s every automated check (resolver, page, API) so
-  public-vs-embargo couldn't be confirmed from the build env. Decisive test: open
-  `https://osf.io/gesyh/overview` in an incognito/logged-out window. If it loads for a
-  stranger → safe to drop the DOI back in as a direct link. If it locks → leave as
-  "on request."
+- **OSF link:** CONFIRMED PUBLIC — verified to render in a logged-out private-browsing
+  window (title "Typed Strategic Families Produce Distinct Failure Morphologies",
+  contributor Ryan Tilcock, "Public registration"). Live link https://osf.io/gesyh/ is
+  now embedded directly in the email. No login wall for Blaine.
 - **Card variant:** named the family ("RTX PRO 6000 Blackwell", 96GB GDDR7) and handed
   Blaine the SKU call. If the two-card plan is real, lean **Max-Q Workstation Edition**
   (300W, blower, built for up to 4 GPUs/box) over the 600W Workstation Edition — two
