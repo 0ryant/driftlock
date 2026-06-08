@@ -6,64 +6,74 @@ cited for verification, public.
 
 ---
 
-**Subject: Re: NVIDIA Inception/Connect Preferred Pricing Request**
+**Subject: Re: NVIDIA Inception/Connect Preferred Pricing Request — yes, and I have a list**
 
 Hi Blaine,
 
-Thanks for the quick turnaround — and for handing me a legitimate, on-the-record
-excuse to spec a Blackwell box. My co-founder and I have been after one for a while.
+Thanks for the quick turnaround. I'll be honest with you: "tell me what you'd like
+to buy" is a dangerous sentence to send a founder who's been quietly building a case
+for a Blackwell box to his co-founder for months. You've just handed me the excuse.
+So — in writing, for the record — yes please.
 
-Quick context so the quote lands in the right place. Algol builds infrastructure
-for *agentic* AI systems — not chat apps. It's a coherent, Rust-native suite that's
-real and shipping today:
+Now the part that makes this a real request and not a wishlist. Algol builds
+infrastructure for *agentic* AI systems, not chat apps. It's a coherent, Rust-native
+suite, and it exists today — not as a deck, as code:
 
-- **Cortex** — a longitudinal supervisory memory substrate for agents.
-- **AXIOM** — governed orchestration: cryptographically-signed run-contracts plus
-  invocation-time identity attestation for every agent action.
-- **CellOS** — narrow-authority execution cells with a kubectl-style CLI.
+- **Cortex** — longitudinal supervisory memory for agents. The thing that remembers
+  so the agents don't have to keep being reminded.
+- **AXIOM** — governed orchestration: cryptographically-signed run-contracts and
+  invocation-time identity attestation on every agent action. Nothing runs that can't
+  prove who it is and what it's allowed to do.
+- **CellOS** — narrow-authority execution cells with a kubectl-style CLI. Agents get
+  exactly the blast radius you grant them and not one syscall more.
 
-All of it sits on a shared substrate core and is held to a standard most early teams
-skip: we measure with **pre-registered empirical evaluations**, not vibes. One of
-those is public if you want to kick the tyres — a frozen, OSF-registered protocol
-(DOI 10.17605/OSF.IO/GESYH) with the hypotheses and thresholds committed *before* any
-results. It's the most honest receipt I can offer that we do real science here, not
-demo-ware.
+All of it on a shared Rust substrate, and — the bit most early teams quietly skip —
+we hold it to **pre-registered empirical evaluations**. Frozen protocol, hypotheses
+and thresholds locked *before* the results exist, the whole open-science ritual. One
+of those evals is registered on OSF and I'm happy to send it over; it's the most
+honest receipt I can offer that we measure things here rather than vibe them.
 
-Here's the bet we want to put hardware behind. There's growing evidence that a
-*smaller* model, given the right scaffolding — durable memory, governed
-orchestration, structured test-time reasoning — can approach the reasoning quality
-of a much larger frontier model. Our suite is purpose-built to *be* that scaffolding.
-So the experiment we want to run is concrete:
+Here's the bet I actually want to put a GPU behind. The interesting frontier right
+now isn't "bigger model." It's that a *smaller* model, wrapped in the right
+scaffolding — durable memory, governed orchestration, structured test-time reasoning
+— can punch well above its weight. Our entire suite is, conveniently, that
+scaffolding. So the experiment writes itself:
 
 > How far can we push an open NVIDIA model — Nemotron-class, served through NIM —
-> toward frontier-grade reasoning when it runs inside the Algol stack, measured by a
-> fresh pre-registered eval in the same tradition as the one above?
+> toward frontier-grade reasoning when it runs inside the Algol stack, and prove it
+> with a fresh pre-registered eval?
 
-If it works, the headline is yours as much as ours: NVIDIA's open models, on NVIDIA
-hardware, reasoning above their weight class at local-inference cost. That's a
-memory / planning / retrieval / evaluation *and* multi-agent workload — a blend of
-latency-sensitive inference and heavy overnight batch eval that gets expensive and
-slow to rent by the GPU-hour. Hence Blackwell on the desk.
+If that lands, the headline is yours as much as mine: NVIDIA's own open models, on
+NVIDIA silicon, reasoning above their weight class at local-inference cost. I'd quite
+like to be the case study you didn't have to write yourself.
 
-Concretely, here's what we'd like quoted under Inception/Connect pricing:
+To do it properly I need the workload on the desk — memory, planning, retrieval,
+evaluation, and multi-agent loops are a nasty mix of latency-sensitive inference and
+heavy overnight batch eval, and renting that by the GPU-hour is both slow and a great
+way to set money on fire. Hence: Blackwell, locally.
 
-1. **RTX PRO 6000 Blackwell workstation GPU** — primary local inference + eval
-   workhorse. One to start, with a clear view to a second for multi-agent
-   parallelism. (Happy to take your steer on the exact PRO SKU and config.)
+So, concretely, here's what I'd love quoted under Inception/Connect pricing:
+
+1. **RTX PRO 6000 Blackwell workstation GPU** — the 96GB is the whole point; it's what
+   lets a Nemotron-class model actually live on the card with room to think. One to
+   start, with a very deliberate view to a second for multi-agent parallelism. (Take
+   the wheel on exact SKU/config — I suspect you'll have opinions, and I want them.)
 2. **DGX Spark** — a dedicated developer box for the local-inference and Nemotron/NIM
-   work; the unified-memory footprint suits our larger memory and retrieval models.
-3. **NVIDIA AI Enterprise / NIM** — whatever entitlements pair sensibly with the above
-   for a small team, plus any Inception software credits we're entitled to.
-4. **Your read on the right platform** — if we're under- or over-speccing for
-   memory / planning / retrieval / eval plus multi-agent, tell us. We'd rather buy the
-   right thing once.
+   work; the unified memory is lovely for the larger memory and retrieval models.
+3. **NVIDIA AI Enterprise / NIM** — whatever software entitlements pair sensibly with
+   the above for a small team, plus any Inception credits we've earned the right to.
+4. **Your honest read on the platform** — if we're under- or over-speccing for that
+   workload, tell me. I'd genuinely rather buy the right thing once than the wrong
+   thing twice.
 
-We're early but moving fast, recently into Inception, and shipping across the suite
-weekly. Happy to get on a call with whoever owns this — and if there's a version of
-this where the Blackwell justifies itself on paper, I'd love it in writing before my
-co-founder talks me back down to a cloud instance.
+We're early but moving fast, freshly into Inception, and shipping across the suite
+weekly. I'd love to get on a call with whoever owns this and turn the above into real
+numbers — and if there's a version of events where the Blackwell pays for itself on
+paper, please put it in writing before my co-founder talks me back down to a cloud
+instance.
 
-Cheers,
+Looking forward to it,
+
 Ryan Tilcock
 Co-Founder, Algol
 
@@ -83,8 +93,17 @@ Co-Founder, Algol
   email describes them as products (fine) but never links them, to avoid a dead link.
 
 **Open decisions before sending:**
-- Confirm **RTX PRO 6000 Blackwell** is the exact workstation SKU to name (vs. leaving
-  it as "RTX PRO Blackwell" and letting Blaine pick the config).
-- Confirm the quantity anchor: "one, view to a second."
+- **OSF link:** email currently *offers the registration on request* rather than
+  hardcoding the DOI, because OSF 403s every automated check (resolver, page, API) so
+  public-vs-embargo couldn't be confirmed from the build env. Decisive test: open
+  `https://osf.io/gesyh/overview` in an incognito/logged-out window. If it loads for a
+  stranger → safe to drop the DOI back in as a direct link. If it locks → leave as
+  "on request."
+- **Card variant:** named the family ("RTX PRO 6000 Blackwell", 96GB GDDR7) and handed
+  Blaine the SKU call. If the two-card plan is real, lean **Max-Q Workstation Edition**
+  (300W, blower, built for up to 4 GPUs/box) over the 600W Workstation Edition — two
+  600W cards in one chassis is a power/thermal headache.
+- **Quantity anchor:** "one, view to a second" — kept (signals growth + gives the rep
+  an upsell path).
 - Platform-team-memory angle (Cortex/CellOS at org scale) intentionally held back for
   the call, where it reads as expansion rather than scope-creep.
