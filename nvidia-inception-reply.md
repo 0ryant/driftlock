@@ -40,6 +40,17 @@ Here's one, public, no login required: https://osf.io/gesyh/. It is genuinely ti
 roughly how much fun we have on a Friday — but it's the most honest receipt I can
 offer that we measure things here rather than vibe them.
 
+And here's why any of this matters beyond my own entertainment. Every quarter more of
+the enterprise actually puts AI into production — and every quarter the risk and
+compliance teams get a little more nervous, because "the model decided" is not an
+answer that survives an audit. Capability stopped being the bottleneck a while ago;
+the bottleneck now is being able to *prove* what an agent is, what it was allowed to
+touch, what it remembered, and why it did the thing it did. That's the whole bet
+behind Algol: governed AI, built so the compliance team's hardest question has a
+boring, documented answer. And — conveniently for this email — "provable and
+governed" is exactly the kind of workload you want running somewhere you actually
+control, rather than rented by the hour on someone else's box.
+
 Here's the bet I actually want to put a GPU behind. The interesting frontier right
 now isn't "bigger model." It's that a *smaller* model, wrapped in the right
 scaffolding — durable memory, governed orchestration, structured test-time reasoning
