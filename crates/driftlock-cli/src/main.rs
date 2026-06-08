@@ -11,7 +11,8 @@ use driftlock_core::{
 };
 use driftlock_store::{
     append_event, complete_claim, generate_operator_key, init_state_dir, load_graph, new_claim,
-    record_claim, release_claim, save_graph, verify_events, EventKind, StatePaths,
+    record_claim, release_claim, save_graph, trust_operator_key, verify_events, EventKind,
+    StatePaths,
 };
 use std::collections::BTreeMap;
 use std::fs;
@@ -189,12 +190,19 @@ enum Command {
 
 #[derive(Debug, Subcommand)]
 enum KeyCommand {
-    /// Generate `.driftlock/keys/active.ed25519`.
+    /// Generate `.driftlock/keys/active.ed25519` (does not auto-trust).
     Generate {
         #[arg(default_value = ".")]
         repo: PathBuf,
         #[arg(long)]
         force: bool,
+    },
+    /// Add the active key to the trust store after confirming its fingerprint.
+    Trust {
+        /// Fingerprint (`fp:...`) printed by `key generate`, confirmed out-of-band.
+        fingerprint: String,
+        #[arg(default_value = ".")]
+        repo: PathBuf,
     },
 }
 
@@ -391,6 +399,16 @@ fn main() -> Result<()> {
         Command::Key { command } => match command {
             KeyCommand::Generate { repo, force } => {
                 let info = generate_operator_key(&repo, force)?;
+                println!("{}", serde_json::to_string_pretty(&info)?);
+                eprintln!(
+                    "key generated but NOT trusted. To trust it run:\n  driftlock key trust {} {}",
+                    info.key_id,
+                    repo.display()
+                );
+                Ok(())
+            }
+            KeyCommand::Trust { fingerprint, repo } => {
+                let info = trust_operator_key(&repo, &fingerprint)?;
                 println!("{}", serde_json::to_string_pretty(&info)?);
                 Ok(())
             }

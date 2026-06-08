@@ -13,6 +13,6 @@ pub use events::{append_event, provenance_from_env, DriftlockEvent, EventKind};
 pub use paths::{claims_path, events_path, graph_path, init_state_dir, StatePaths};
 pub use persistence::{load_graph, save_graph};
 pub use signing::{
-    generate_operator_key, load_active_signing_key, sign_event_line, verify_events, KeyInfo,
-    SignedEventLine, VerifyReport,
+    generate_operator_key, load_active_signing_key, sign_event_line, trust_operator_key,
+    verify_events, KeyInfo, SignedEventLine, VerifyReport,
 };
