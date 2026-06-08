@@ -17,17 +17,32 @@ So, in writing, for the record: yes please.
 
 Now the part that makes this a real request and not a wishlist. Algol builds
 infrastructure for *agentic* AI systems, not chat apps. It's a coherent, Rust-native
-suite, and it exists today, not as a deck but as code:
+suite that exists today, not as a deck but as code, and most of it is deliberately
+about control rather than compute. The work I'm proudest of lives in the governance
+and security layer:
 
-- **Cortex:** longitudinal supervisory memory for agents. The thing that remembers
-  so the agents don't have to keep being reminded.
-- **CellOS:** narrow-authority execution cells with a kubectl-style CLI. Agents get
+- **taudit:** a CI/CD authority scanner that hunts leaked secrets, rogue identities,
+  and broken trust boundaries before they ever ship.
+- **tsafe:** a local secret and credential manager, because a depressing amount of
+  real-world "AI safety" turns out to be just not leaking the keys.
+- **aegress:** process-scoped provenance and invocation-time identity attestation for
+  agents, so every prompt, skill, and action can prove where it came from and who was
+  cleared to run it.
+- **CellOS:** narrow-authority execution cells with a kubectl-style CLI; agents get
   exactly the blast radius you grant them and not one syscall more.
+- **doctrine-mcp:** a source-grounded citation server where every claim is bound to a
+  specific commit, file, and line, and writes are propose-only. The cure for the
+  confidently-wrong agent.
 
-Those two are just the headline acts; they sit on top of twenty-odd other apps I've
-deliberately engineered against the specific failure modes I keep watching AI walk
-into. I'll happily name every one and what it does in a separate email if you're
-interested; I'm just trying to keep this one focused on the bit with a price tag.
+That's five of twenty-odd apps, each engineered against a specific failure mode I keep
+watching AI walk into, and I'll happily name the rest in a separate email if you're
+curious. Here's the honest bit, though: none of that needs a GPU. That's rather the
+point. Most of what we build is about provable control, not raw compute.
+
+But one part of the stack is genuinely silicon-hungry, and it's why I'm writing: agent
+memory. **Cortex** is our longitudinal supervisory memory layer, the thing that
+remembers so the agents don't have to keep being reminded, and doing it properly means
+real local inference for consolidation, retrieval, and evaluation.
 
 All of it on a shared Rust substrate. And here's the bit most early teams quietly
 skip: we hold it to **pre-registered empirical evaluations**. Frozen protocol,
