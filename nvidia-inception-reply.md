@@ -27,6 +27,11 @@ suite, and it exists today — not as a deck, as code:
 - **CellOS** — narrow-authority execution cells with a kubectl-style CLI. Agents get
   exactly the blast radius you grant them and not one syscall more.
 
+Those three are the headline acts — but they sit on top of twenty-odd other apps I've
+deliberately engineered against the specific failure modes I keep watching AI walk
+into. I'll happily name every one and what it does in a separate email if you're
+interested; I'm just trying to keep this one focused on the bit with a price tag.
+
 All of it on a shared Rust substrate, and — the bit most early teams quietly skip —
 we hold it to **pre-registered empirical evaluations**. Frozen protocol, hypotheses
 and thresholds locked *before* the results exist, the whole open-science ritual.
