@@ -34,6 +34,14 @@ and security layer:
   specific commit, file, and line, and writes are propose-only. The cure for the
   confidently-wrong agent.
 
+(Obligatory confession: the first thing we did with CellOS was get it to run Doom. It
+ran, naturally; the cells are Firecracker microVMs, so that part was never in
+question. The genuinely interesting result was that the cell happily playing Doom
+couldn't exfiltrate a single byte. For an encore we trapped an LLM inside a cell as a
+reverse capture-the-flag: find the secret, smuggle it out. It's still in there to this
+day, and it can't even kill time with Doom, on account of being a 32B model and not
+quite sharp enough to work out the controls.)
+
 That's five of twenty-odd apps, each engineered against a specific failure mode I keep
 watching AI walk into, and I'll happily name the rest in a separate email if you're
 curious. Here's the honest bit, though: none of that needs a GPU. That's rather the
