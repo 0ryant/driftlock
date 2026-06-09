@@ -35,14 +35,26 @@ pub fn index_repo(root: impl AsRef<Path>) -> Result<RepoIndex> {
     Ok(RepoIndex { root: root.to_string_lossy().to_string(), files })
 }
 
+/// Rejects refs that could be mis-parsed as git options (option injection).
+fn validate_ref(name: &str, value: &str) -> Result<()> {
+    if value.starts_with('-') {
+        anyhow::bail!("{name} may not begin with '-': {value:?}");
+    }
+    Ok(())
+}
+
 /// Returns changed files from `git diff --name-only`.
 pub fn git_changed_files(repo_root: impl AsRef<Path>, base_ref: &str) -> Result<Vec<String>> {
+    validate_ref("base_ref", base_ref)?;
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_root.as_ref())
         .arg("diff")
         .arg("--name-only")
         .arg(base_ref)
+        // End-of-options separator so base_ref is always treated as a revision,
+        // never as a flag, even if validation is bypassed in future.
+        .arg("--")
         .output()
         .context("running git diff --name-only")?;
     if !output.status.success() {
@@ -72,6 +84,8 @@ pub fn current_head(repo_root: impl AsRef<Path>) -> Result<String> {
 
 /// Returns true when `ancestor` is an ancestor of `head` (or equal).
 pub fn is_ancestor(repo_root: impl AsRef<Path>, ancestor: &str, head: &str) -> Result<bool> {
+    validate_ref("ancestor", ancestor)?;
+    validate_ref("head", head)?;
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_root.as_ref())
@@ -105,8 +119,16 @@ pub fn changed_files_from_diff(diff: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{changed_files_from_diff, index_repo};
+    use super::{changed_files_from_diff, git_changed_files, index_repo, is_ancestor};
     use std::fs;
+
+    #[test]
+    fn rejects_option_like_refs() {
+        let root = std::env::temp_dir();
+        assert!(git_changed_files(&root, "--output=/tmp/x").is_err());
+        assert!(is_ancestor(&root, "-X", "HEAD").is_err());
+        assert!(is_ancestor(&root, "HEAD", "--foo").is_err());
+    }
 
     #[test]
     fn extracts_paths_from_unified_diff() {

@@ -81,8 +81,28 @@ Driftlock is intentionally conservative:
 - Missing ADR evidence is non-canonical.
 - Stale base refs invalidate readiness.
 - Hard conflicts block delivery.
-- Diff verification is required before task completion.
+- Diff verification is required before task completion. Completing a task with
+  no changed files fails closed — the MCP and CLI paths both fall back to
+  `git diff` and an empty change set is treated as a verification failure.
 - Scope expansion requires a new work order or maintainer override.
+
+## Audit signing trust model
+
+Audit-event signing keys are **not** self-trusting. `driftlock key generate`
+writes the private key to `.driftlock/keys/active.ed25519` with owner-only
+(0600) permissions on Unix but does **not** add it to the trust store. Trust is
+an explicit operator action that pins the fingerprint out-of-band:
+
+```bash
+driftlock key generate            # prints the key_id fingerprint
+driftlock key trust fp:<fingerprint>   # confirm the fingerprint, then trust
+driftlock audit verify --signed   # require signatures in CI gates
+```
+
+The trust directory (`.driftlock/keys/trust/`) should be version-controlled and
+reviewed; any key it contains can sign verifiable events. MCP tool paths reject
+absolute paths and `..` traversal and contain all reads within the repository
+root.
 
 ## Status
 

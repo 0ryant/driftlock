@@ -71,6 +71,13 @@ pub fn trust_keys_dir(repo_root: &Path) -> PathBuf {
 }
 
 /// Generates operator signing key under `.driftlock/keys/`.
+///
+/// Key generation does NOT automatically add the new public key to the trust
+/// store: a self-attesting trust store provides no tamper-evidence because any
+/// actor who can write the repo could mint a key and "trust" it. Adding a key to
+/// the trust set is a separate, explicit operator action via
+/// [`trust_operator_key`] (and the `driftlock key trust <fingerprint>` CLI),
+/// which pins the fingerprint out-of-band.
 pub fn generate_operator_key(repo_root: &Path, force: bool) -> Result<KeyInfo> {
     let key_path = active_signing_key_path(repo_root);
     if key_path.exists() && !force {
@@ -78,11 +85,32 @@ pub fn generate_operator_key(repo_root: &Path, force: bool) -> Result<KeyInfo> {
     }
     if let Some(parent) = key_path.parent() {
         fs::create_dir_all(parent)?;
+        harden_dir_permissions(parent)?;
     }
     let signing_key = SigningKey::generate(&mut OsRng);
-    fs::write(&key_path, signing_key.to_bytes())?;
-    publish_trust_pubkey(repo_root, &signing_key.verifying_key())?;
+    write_secret_file(&key_path, signing_key.to_bytes().as_slice())?;
     Ok(key_info(&key_path, &signing_key))
+}
+
+/// Adds the active key's public half to the trust store after the operator
+/// confirms its fingerprint out-of-band.
+///
+/// `expected_fingerprint` must equal the active key's fingerprint; the caller is
+/// expected to have obtained it from a trusted channel (e.g. the output of
+/// `key generate`, reviewed by a human) rather than from the repo itself. This
+/// makes trust an explicit, verifiable action instead of self-attestation.
+pub fn trust_operator_key(repo_root: &Path, expected_fingerprint: &str) -> Result<KeyInfo> {
+    let signing_key = load_active_signing_key(repo_root)?
+        .context("no active signing key to trust; run `key generate` first")?;
+    let verifying_key = signing_key.verifying_key();
+    let actual = key_fingerprint(&verifying_key);
+    if actual != expected_fingerprint {
+        anyhow::bail!(
+            "fingerprint mismatch: active key is {actual}, operator supplied {expected_fingerprint}"
+        );
+    }
+    publish_trust_pubkey(repo_root, &verifying_key)?;
+    Ok(key_info(&active_signing_key_path(repo_root), &signing_key))
 }
 
 /// Loads active signing key if present.
@@ -170,9 +198,17 @@ fn verify_signed_line(repo_root: &Path, line: &SignedEventLine) -> Result<(), St
     Ok(())
 }
 
+/// Builds the bytes that are signed/verified for an event.
+///
+/// NOTE: this is bound to `serde_json`'s current output, not a formal
+/// canonical-JSON encoding. Stability relies on `DriftlockEvent`'s field order
+/// being fixed and `metadata` being a `BTreeMap` (sorted keys). Any change to
+/// the struct's serialized shape changes this preimage and invalidates
+/// previously-signed lines. The regression test `preimage_is_byte_stable`
+/// pins the exact bytes for a fixed event so such a change cannot land silently.
 fn signing_preimage(event: &DriftlockEvent) -> Result<Vec<u8>> {
-    let canonical = serde_json::to_string(event)?;
-    let hash = Sha256::digest(canonical.as_bytes());
+    let serialized = serde_json::to_string(event)?;
+    let hash = Sha256::digest(serialized.as_bytes());
     Ok(format!("{SIGN_DOMAIN}{}", hex::encode(hash)).into_bytes())
 }
 
@@ -205,11 +241,110 @@ fn load_trust_pubkey(repo_root: &Path, key_id: &str) -> Result<Option<VerifyingK
     Ok(Some(VerifyingKey::from_bytes(&arr)?))
 }
 
+/// Writes secret bytes to `path`, creating the file with owner-only (0600)
+/// permissions on Unix before any bytes are written.
+fn write_secret_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(path)
+            .with_context(|| format!("creating secret file {}", path.display()))?;
+        file.write_all(bytes)?;
+        // Re-assert mode in case the file pre-existed with looser permissions.
+        fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    }
+    #[cfg(not(unix))]
+    {
+        fs::write(path, bytes)?;
+    }
+    Ok(())
+}
+
+/// Restricts a directory to owner-only (0700) access on Unix.
+fn harden_dir_permissions(dir: &Path) -> Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))
+            .with_context(|| format!("hardening directory {}", dir.display()))?;
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = dir;
+    }
+    Ok(())
+}
+
 fn key_info(path: &Path, signing_key: &SigningKey) -> KeyInfo {
     let verifying_key = signing_key.verifying_key();
     KeyInfo {
         path: path.to_path_buf(),
         key_id: key_fingerprint(&verifying_key),
         public_key_hex: hex::encode(verifying_key.as_bytes()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::signing_preimage;
+    use crate::events::DriftlockEvent;
+    use std::collections::BTreeMap;
+
+    fn fixed_event() -> DriftlockEvent {
+        let mut metadata = BTreeMap::new();
+        metadata.insert("b".to_string(), serde_json::json!("two"));
+        metadata.insert("a".to_string(), serde_json::json!(1));
+        DriftlockEvent {
+            event: "dev.driftlock.task.claimed.v1".to_string(),
+            at: "2026-06-08T00:00:00+00:00".to_string(),
+            actor: "test".to_string(),
+            task: Some("t-1".to_string()),
+            metadata,
+        }
+    }
+
+    #[test]
+    fn preimage_serialized_shape_is_pinned() {
+        // Pins the exact serde_json serialization the preimage is bound to. If
+        // the struct shape / field order / serde behavior changes, this fails
+        // loudly rather than silently breaking every previously-signed line.
+        let serialized = serde_json::to_string(&fixed_event()).unwrap();
+        assert_eq!(
+            serialized,
+            r#"{"event":"dev.driftlock.task.claimed.v1","at":"2026-06-08T00:00:00+00:00","actor":"test","task":"t-1","metadata":{"a":1,"b":"two"}}"#,
+            "event serialization changed; the signing preimage is bound to this exact shape"
+        );
+    }
+
+    #[test]
+    fn preimage_has_domain_prefix() {
+        let preimage = signing_preimage(&fixed_event()).unwrap();
+        let text = String::from_utf8(preimage).unwrap();
+        assert!(text.starts_with("driftlock:events:sign:v1:"));
+    }
+
+    #[test]
+    fn preimage_is_deterministic() {
+        // Same logical event (metadata inserted in different order) must yield
+        // the same preimage thanks to BTreeMap key ordering.
+        let mut a = fixed_event();
+        let mut b_meta = BTreeMap::new();
+        b_meta.insert("a".to_string(), serde_json::json!(1));
+        b_meta.insert("b".to_string(), serde_json::json!("two"));
+        let mut b = fixed_event();
+        b.metadata = b_meta;
+        a.metadata = {
+            let mut m = BTreeMap::new();
+            m.insert("b".to_string(), serde_json::json!("two"));
+            m.insert("a".to_string(), serde_json::json!(1));
+            m
+        };
+        assert_eq!(signing_preimage(&a).unwrap(), signing_preimage(&b).unwrap());
     }
 }
