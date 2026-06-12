@@ -1,0 +1,52 @@
+{
+  "schema_version": "0.1.0",
+  "graph_id": "driftlock-writeset-escape-demo",
+  "repo_root": "acme-demo",
+  "base_ref": "demo-base-0000000",
+  "generated_at": "2026-06-12T00:00:00Z",
+  "tasks": [
+    {
+      "id": "adr-0007:T01",
+      "title": "Add Redis-backed session store crate",
+      "source": {
+        "adr": "input/adr/0007-redis-session-store.md",
+        "adr_revision": "scaffold-demo",
+        "section": "Authorised write boundary (work order adr-0007:T01)",
+        "start_line": 24,
+        "end_line": 30,
+        "evidence": "may write only: crates/session-store/**, tests/session/**"
+      },
+      "intent": "Introduce a durable Redis-backed session store as the session-store crate, bounded to that crate and its tests.",
+      "lane": "core",
+      "status": "ready",
+      "write_set": [
+        "crates/session-store/**",
+        "tests/session/**"
+      ],
+      "read_set": [
+        "crates/**"
+      ],
+      "exclusive_resources": [],
+      "deps": [],
+      "unlocks": [],
+      "conflicts": [],
+      "acceptance": [
+        "Sessions survive a process restart.",
+        "No write occurs outside the authorised write boundary."
+      ],
+      "non_goals": [
+        "Changing the billing subsystem (crates/billing/**).",
+        "Touching CI or release configuration."
+      ],
+      "confidence": {
+        "task_extraction": 0.95,
+        "file_scope": 0.9,
+        "dependency_edges": 0.85
+      },
+      "metadata": {}
+    }
+  ],
+  "edges": [],
+  "lanes": [],
+  "metadata": {}
+}

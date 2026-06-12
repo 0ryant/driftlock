@@ -1,0 +1,21 @@
+{
+  "task_id": "adr-0007:T01",
+  "allowed": false,
+  "touched_files": [
+    ".github/workflows/release.yml",
+    "crates/billing/src/charge.rs",
+    "crates/session-store/src/lib.rs",
+    "tests/session/roundtrip.rs"
+  ],
+  "violations": [
+    {
+      "path": ".github/workflows/release.yml",
+      "reason": "Path is outside the work order write set"
+    },
+    {
+      "path": "crates/billing/src/charge.rs",
+      "reason": "Path is outside the work order write set"
+    }
+  ],
+  "warnings": []
+}

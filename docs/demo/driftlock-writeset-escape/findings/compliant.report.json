@@ -1,0 +1,11 @@
+{
+  "task_id": "adr-0007:T01",
+  "allowed": true,
+  "touched_files": [
+    "crates/session-store/Cargo.toml",
+    "crates/session-store/src/lib.rs",
+    "tests/session/roundtrip.rs"
+  ],
+  "violations": [],
+  "warnings": []
+}
