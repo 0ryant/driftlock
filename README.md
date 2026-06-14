@@ -104,6 +104,26 @@ reviewed; any key it contains can sign verifiable events. MCP tool paths reject
 absolute paths and `..` traversal and contain all reads within the repository
 root.
 
+## Audit hash chain
+
+`.driftlock/events.jsonl` is a **hash chain**, not a bag of independent rows.
+Each event carries a `prev_hash` field linking it to the SHA-256 of the previous
+row's canonical bytes; the first row links to a fixed genesis value (64 hex
+zeros). `driftlock audit verify` walks the rows and fails closed if the chain is
+not contiguous, so **deletion, reordering, or in-place edits of any row are
+detected** — properties that per-row Ed25519 signatures alone cannot provide
+(a signature proves a row is authentic, but says nothing about whether its
+neighbours were removed or shuffled). On signed rows the `prev_hash` link is
+folded into the signing preimage, so tampering with the linkage also invalidates
+the signature.
+
+Chain verification runs whether or not signing is enabled (`--signed` only adds
+the requirement that every row also be signed). The one residual is tail
+truncation: dropping the most recent rows leaves a still-contiguous prefix, so an
+external anchor (e.g. a recorded head digest) is needed to detect a shortened
+log — `driftlock audit verify` reports `rows_scanned` to make a length drop
+observable.
+
 ## Status
 
 v0.1.0-rc.1 — wired end-to-end: `.driftlock/` state, CLI lifecycle, MCP tools (including claim/complete), contract validation, and sibling-parity CI (`quality.yml`, `governance.yml`). See `docs/PARITY_BACKLOG.md` for remaining v1.0 items.

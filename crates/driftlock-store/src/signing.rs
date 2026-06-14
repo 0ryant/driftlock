@@ -1,15 +1,16 @@
 //! Ed25519 signing for audit event lines.
 
-use crate::events::DriftlockEvent;
+use crate::events::{DriftlockEvent, GENESIS_PREV_HASH};
 use anyhow::{Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
+use rand_core::OsRng;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 const SIGN_DOMAIN: &str = "driftlock:events:sign:v1:";
+const CHAIN_DOMAIN: &str = "driftlock:events:chain:v1:";
 
 /// Signed JSONL envelope.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -158,12 +159,44 @@ pub fn verify_events(repo_root: &Path, require_signed: bool) -> Result<VerifyRep
         return Ok(report);
     }
     let text = fs::read_to_string(&path)?;
+    // Tracks the `prev_hash` the next non-empty row must carry. Seeded with the
+    // genesis link so deletion of the original first row is caught (the new
+    // first row's `prev_hash` would point at a record, not at genesis).
+    let mut expected_prev = GENESIS_PREV_HASH.to_string();
     for (idx, line) in text.lines().enumerate() {
         if line.trim().is_empty() {
             continue;
         }
         report.rows_scanned += 1;
         let line_no = idx + 1;
+
+        // Recover the underlying event for both the chain check and the
+        // signed/unsigned handling below.
+        let parsed_event = parse_event_line(line).ok();
+
+        // Chain linkage is verified for every row regardless of signing: this
+        // is the property that detects truncation, reordering, and deletion —
+        // exactly what independent per-row signatures cannot see.
+        match &parsed_event {
+            Some(event) => {
+                if event.prev_hash != expected_prev {
+                    report.status = "fail".into();
+                    report.failures.push(format!(
+                        "line {line_no}: broken hash chain (prev_hash {} != expected {})",
+                        event.prev_hash, expected_prev
+                    ));
+                }
+                // Advance the head to this row's record hash even on mismatch so
+                // a single edit produces one chain failure, not a cascade.
+                expected_prev = record_hash(event)?;
+            }
+            None => {
+                report.status = "fail".into();
+                report.failures.push(format!("line {line_no}: invalid event json"));
+                continue;
+            }
+        }
+
         if let Ok(signed) = serde_json::from_str::<SignedEventLine>(line) {
             if let Err(reason) = verify_signed_line(repo_root, &signed) {
                 report.status = "fail".into();
@@ -174,11 +207,6 @@ pub fn verify_events(repo_root: &Path, require_signed: bool) -> Result<VerifyRep
         if require_signed {
             report.status = "fail".into();
             report.failures.push(format!("line {line_no}: unsigned row"));
-            continue;
-        }
-        if serde_json::from_str::<DriftlockEvent>(line).is_err() {
-            report.status = "fail".into();
-            report.failures.push(format!("line {line_no}: invalid event json"));
         }
     }
     Ok(report)
@@ -210,6 +238,51 @@ fn signing_preimage(event: &DriftlockEvent) -> Result<Vec<u8>> {
     let serialized = serde_json::to_string(event)?;
     let hash = Sha256::digest(serialized.as_bytes());
     Ok(format!("{SIGN_DOMAIN}{}", hex::encode(hash)).into_bytes())
+}
+
+/// Domain-separated hex SHA-256 over an event's canonical bytes.
+///
+/// This is the value the *next* row carries in its `prev_hash` field, forming
+/// the audit hash chain. It is computed over the same `serde_json` bytes the
+/// signing preimage is bound to (so the `prev_hash` link is itself covered by
+/// any signature), with a distinct domain tag so a record hash can never be
+/// confused with a signing preimage.
+pub fn record_hash(event: &DriftlockEvent) -> Result<String> {
+    let serialized = serde_json::to_string(event)?;
+    let mut hasher = Sha256::new();
+    hasher.update(CHAIN_DOMAIN.as_bytes());
+    hasher.update(serialized.as_bytes());
+    Ok(hex::encode(hasher.finalize()))
+}
+
+/// Reads the chain head (the `prev_hash` the next appended row must carry) from
+/// an existing `events.jsonl`, or the genesis link when the ledger is empty.
+///
+/// Rows may be signed ([`SignedEventLine`]) or bare [`DriftlockEvent`]; both are
+/// understood so chaining is independent of whether signing is enabled.
+pub fn chain_head(events_path: &Path) -> Result<String> {
+    if !events_path.exists() {
+        return Ok(GENESIS_PREV_HASH.to_string());
+    }
+    let text = fs::read_to_string(events_path)?;
+    let mut head = GENESIS_PREV_HASH.to_string();
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let event = parse_event_line(line)?;
+        head = record_hash(&event)?;
+    }
+    Ok(head)
+}
+
+/// Parses one JSONL row as its underlying [`DriftlockEvent`], whether the row is
+/// a signed envelope or a bare event.
+fn parse_event_line(line: &str) -> Result<DriftlockEvent> {
+    if let Ok(signed) = serde_json::from_str::<SignedEventLine>(line) {
+        return Ok(signed.payload);
+    }
+    serde_json::from_str::<DriftlockEvent>(line).context("invalid event json")
 }
 
 fn key_fingerprint(pubkey: &VerifyingKey) -> String {
@@ -292,8 +365,8 @@ fn key_info(path: &Path, signing_key: &SigningKey) -> KeyInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::signing_preimage;
-    use crate::events::DriftlockEvent;
+    use super::{record_hash, signing_preimage};
+    use crate::events::{DriftlockEvent, GENESIS_PREV_HASH};
     use std::collections::BTreeMap;
 
     fn fixed_event() -> DriftlockEvent {
@@ -301,6 +374,7 @@ mod tests {
         metadata.insert("b".to_string(), serde_json::json!("two"));
         metadata.insert("a".to_string(), serde_json::json!(1));
         DriftlockEvent {
+            prev_hash: GENESIS_PREV_HASH.to_string(),
             event: "dev.driftlock.task.claimed.v1".to_string(),
             at: "2026-06-08T00:00:00+00:00".to_string(),
             actor: "test".to_string(),
@@ -314,12 +388,29 @@ mod tests {
         // Pins the exact serde_json serialization the preimage is bound to. If
         // the struct shape / field order / serde behavior changes, this fails
         // loudly rather than silently breaking every previously-signed line.
+        // `prev_hash` is first so the chain link is covered by the signature.
         let serialized = serde_json::to_string(&fixed_event()).unwrap();
         assert_eq!(
             serialized,
-            r#"{"event":"dev.driftlock.task.claimed.v1","at":"2026-06-08T00:00:00+00:00","actor":"test","task":"t-1","metadata":{"a":1,"b":"two"}}"#,
+            r#"{"prev_hash":"0000000000000000000000000000000000000000000000000000000000000000","event":"dev.driftlock.task.claimed.v1","at":"2026-06-08T00:00:00+00:00","actor":"test","task":"t-1","metadata":{"a":1,"b":"two"}}"#,
             "event serialization changed; the signing preimage is bound to this exact shape"
         );
+    }
+
+    #[test]
+    fn record_hash_changes_when_prev_hash_changes() {
+        // The record hash (next row's prev_hash) must depend on this row's own
+        // prev_hash, otherwise reordering rows with identical payloads would not
+        // break the chain.
+        let a = fixed_event();
+        let mut b = fixed_event();
+        b.prev_hash = "11".repeat(32);
+        assert_ne!(record_hash(&a).unwrap(), record_hash(&b).unwrap());
+    }
+
+    #[test]
+    fn record_hash_is_deterministic() {
+        assert_eq!(record_hash(&fixed_event()).unwrap(), record_hash(&fixed_event()).unwrap());
     }
 
     #[test]
