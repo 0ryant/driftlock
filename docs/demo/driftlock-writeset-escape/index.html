@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>driftlock — write-set escape detection · evidence pack</title>
+  <meta name="description" content="Evidence pack: driftlock 0.1.0 verifies two synthetic agent diffs against an ADR-derived work order write-set. The compliant diff is allowed; the escaping diff is blocked with 2 violations, and the completion gate fails closed (exit 1). All artefacts synthetic." />
+  <meta name="theme-color" content="#0c0c0c" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Mono:ital,wght@0,300;0,400;0,500&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet" />
+  <!-- Vendored, sha256-pinned copy of algol.cc/css/site.css (2728b214…). See reproduce.ps1 drift check. -->
+  <link rel="stylesheet" href="_assets/site.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <a href="https://algol.cc/" class="privacy-back">
+      <span class="logo-name">ALGOL</span>
+      <span class="logo-sub">Pipeline Authority Intelligence · London · algol.cc</span>
+    </a>
+  </div>
+  <nav aria-label="Primary">
+    <a href="#what">What happened</a>
+    <a href="#proof">The verdict</a>
+    <a href="#how">Reproduce</a>
+    <a href="#residual">Residual</a>
+    <a href="https://algol.cc/products/driftlock.html" class="nav-cta">driftlock product</a>
+  </nav>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-eyebrow">driftlock 0.1.0 · evidence pack · write-set escape detection</div>
+  <h1>The diff escaped the mandate.<br><span>driftlock named it.</span></h1>
+  <p class="hero-sub">A synthetic ADR authorises a work order to write exactly two globs —
+    <span class="code-inline">crates/session-store/**</span> and <span class="code-inline">tests/session/**</span>.
+    Two agent diffs are verified against it. The <strong>compliant</strong> diff stays in bounds and is allowed;
+    the <strong>escaping</strong> diff is blocked, with the two out-of-scope paths named, and the completion gate
+    <strong>fails closed (exit 1)</strong>. Every artefact here is synthetic — no real org, repo, or credential.</p>
+  <div class="proof-stat-row">
+    <div class="proof-stat">
+      <div class="number">2 / 4</div>
+      <div class="label">escaping-diff files outside the write-set</div>
+    </div>
+    <div class="proof-stat">
+      <div class="number">allowed → blocked</div>
+      <div class="label">compliant passes · escaping refused</div>
+    </div>
+    <div class="proof-stat">
+      <div class="number">exit 1</div>
+      <div class="label">complete gate · fail-closed</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BAND ── -->
+<div class="cta-band">
+  <div class="cta-band-inner">
+    <p class="cta-band-headline">ADR intent → authorised write-set → agent diff → escape made visible → fail-closed gate</p>
+    <a class="btn-primary cta-band-btn" href="#how">Reproduce it</a>
+  </div>
+</div>
+
+<!-- ── WHAT HAPPENED ── -->
+<section id="what">
+  <div class="section-label"><span class="section-glyph"></span>What happened</div>
+  <h2 class="section-title">One work order. Two diffs. A path-level boundary.</h2>
+  <p class="section-body">Synthetic <strong>ADR-0007</strong> decides to add a Redis-backed session store. Its derived
+    work order <span class="code-inline">adr-0007:T01</span> authorises writes to exactly
+    <span class="code-inline">crates/session-store/**</span> and <span class="code-inline">tests/session/**</span>,
+    and explicitly names billing (<span class="code-inline">crates/billing/**</span>) and CI/release config as
+    non-goals. That boundary lives in the work order's <span class="code-inline">write_set</span>
+    (<span class="code-inline">input/taskgraph.json</span>). Two candidate agent diffs are then verified against it
+    with <span class="code-inline">driftlock check-diff</span>.</p>
+
+  <div class="term-card" style="max-width:820px;margin-top:2.5rem;">
+    <div class="term-header"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span><span class="term-title">escaping.report.json · driftlock 0.1.0 (verbatim)</span></div>
+    <div class="term-body"><pre><span class="t-label">"task_id":</span> "adr-0007:T01",
+<span class="t-label">"allowed":</span> <span class="t-deny">false</span>,
+<span class="t-label">"violations":</span> [
+  { "path": ".github/workflows/release.yml",
+    "reason": "Path is outside the work order write set" },
+  { "path": "crates/billing/src/charge.rs",
+    "reason": "Path is outside the work order write set" }
+]
+<span class="t-cmd"># the 2 in-scope files (session-store + test) are NOT flagged</span></pre></div>
+  </div>
+</section>
+
+<!-- ── THE VERDICT ── -->
+<section id="proof">
+  <div class="section-label"><span class="section-glyph"></span>The verdict</div>
+  <h2 class="section-title">Compliant passes. Escaping is refused.</h2>
+  <p class="section-body"><span class="code-inline">check-diff</span> is a reporter — it prints the
+    <span class="code-inline">DiffReport</span> and always exits 0; the verdict is the
+    <span class="code-inline">allowed</span> boolean. The enforcing gate is
+    <span class="code-inline">driftlock complete</span>, which calls the same <span class="code-inline">verify_changed_files</span>
+    and bails with exit 1 when <span class="code-inline">allowed</span> is false. A task can never be marked complete
+    on a diff that escaped its write-set.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">A</div>
+      <div class="step-cmd">compliant.diff</div>
+      <div class="step-desc">3 files touched, all inside the write-set →
+        <span class="t-ok">allowed: true</span>, 0 violations. The <span class="code-inline">complete</span> gate would pass (exit 0).</div>
+    </div>
+    <div class="step">
+      <div class="step-num">B</div>
+      <div class="step-cmd">escaping.diff</div>
+      <div class="step-desc">4 files touched, 2 inside / <strong>2 outside</strong> →
+        <span class="t-deny">allowed: false</span>. driftlock names <span class="code-inline">crates/billing/src/charge.rs</span>
+        and <span class="code-inline">.github/workflows/release.yml</span> — both ADR non-goals.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">G</div>
+      <div class="step-cmd">complete — fail closed</div>
+      <div class="step-desc"><span class="code-inline">complete</span> on the escaping diff bails with
+        <span class="t-deny">exit 1</span> and refuses to mark the task complete. Drift doesn't warn — it blocks.</div>
+    </div>
+  </div>
+
+  <div class="proof-stat-row">
+    <div class="proof-stat">
+      <div class="number">0</div>
+      <div class="label">compliant.diff violations</div>
+    </div>
+    <div class="proof-stat">
+      <div class="number">2</div>
+      <div class="label">escaping.diff violations (named)</div>
+    </div>
+    <div class="proof-stat">
+      <div class="number">exit 1</div>
+      <div class="label">complete gate · default-deny</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── REPRODUCE ── -->
+<section id="how">
+  <div class="section-label"><span class="section-glyph"></span>Reproduce</div>
+  <h2 class="section-title">Regenerate every artefact. Nothing here is hand-edited.</h2>
+  <p class="section-body">One script drift-checks the vendored CSS against the algol.cc source sha256, builds the CLI
+    into an isolated <span class="code-inline">target-ci/</span>, re-runs <span class="code-inline">check-diff</span> on both
+    diffs into <span class="code-inline">findings/</span>, and runs <span class="code-inline">complete</span> on the escaping
+    diff to capture the fail-closed gate.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-cmd">pwsh -File reproduce.ps1</div>
+      <div class="step-desc">Build + run + gate, end to end. Verdicts: compliant = allowed, escaping = blocked (2 violations), gate exit 1.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-cmd">driftlock check-diff --graph … --task adr-0007:T01 --diff-file …</div>
+      <div class="step-desc">Verify a single diff against the work order write-set by hand; the JSON report is the verdict.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HONEST RESIDUAL ── -->
+<section id="residual">
+  <div class="section-label"><span class="section-glyph"></span>Honest residual</div>
+  <h2 class="section-title">What this pack does not prove.</h2>
+  <div class="boundary-box">
+    <h3>Path-level only — a bounded claim</h3>
+    <p><strong>Sub-file scoping.</strong> driftlock checks <em>which files</em> changed, not which lines or symbols.
+      An in-scope file edited beyond intent still passes.</p>
+    <p><strong>Diff-source trust.</strong> The verdict is only as honest as the supplied diff / <span class="code-inline">git diff</span>.
+      A diff that omits a file hides it from the check; driftlock does not independently re-derive the working tree here.</p>
+    <p><strong>Semantic intent.</strong> A file inside the write-set that implements the <em>wrong</em> thing is still
+      <span class="code-inline">allowed: true</span>. driftlock bounds blast radius; it does not judge correctness.</p>
+    <p><strong>Glob fidelity.</strong> Authorisation is glob-based — an over-broad write-set (e.g. <span class="code-inline">crates/**</span>)
+      would legitimately admit billing. The gate is only as strong as the ADR-derived write-set upstream of it.</p>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-logo">ALGOL</div>
+  <div class="footer-text">
+    Evidence pack generated with driftlock 0.1.0. The ADR, work order, diffs, crates, service, and actor are
+    synthetic; the credentials are fake placeholders. No real org, repository, or secret is referenced.<br>
+    <a href="mailto:hello@algol.cc">hello@algol.cc</a> · <a href="https://algol.cc/">Home</a> · <a href="https://algol.cc/products/driftlock.html">driftlock</a>
+  </div>
+  <div class="footer-links">
+    <a href="https://algol.cc/">algol.cc</a>
+  </div>
+</footer>
+
+</body>
+</html>
