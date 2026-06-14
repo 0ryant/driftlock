@@ -10,3 +10,7 @@
 .DS_Store
 .idea/
 .vscode/
+# Build/target dirs at any depth (prevents nested crate target dirs being
+# committed and tripping GitHub GH001; root-anchored rules above miss these).
+**/target/
+**/target-*/
