@@ -39,7 +39,7 @@ jobs:
           (cd dist && shasum -a 256 driftlock driftlock-mcp > SHA256SUMS)
           tar -czf "${{ matrix.name }}.${{ matrix.archive_ext }}" -C dist driftlock driftlock-mcp SHA256SUMS
       - name: Attest binary provenance (SLSA)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: |
             dist/driftlock
