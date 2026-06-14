@@ -1,0 +1,2 @@
+cargo:rerun-if-changed=C:\Users\0ryant\prj\driftlock\crates\driftlock-skills\embed\skills
+cargo:rerun-if-changed=C:\Users\0ryant\prj\driftlock\crates\driftlock-skills\embed\prompts

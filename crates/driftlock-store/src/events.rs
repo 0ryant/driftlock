@@ -1,7 +1,7 @@
 //! Append-only audit events (JSONL).
 
 use crate::paths::StatePaths;
-use crate::signing::{load_active_signing_key, sign_event_line};
+use crate::signing::{chain_head, load_active_signing_key, sign_event_line};
 use anyhow::Result;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -59,9 +59,29 @@ pub struct Provenance {
     pub provenancekind: Option<String>,
 }
 
+/// Genesis link for the first event in a ledger: 64 hex zeros (32 zero bytes).
+///
+/// The chain is anchored to this fixed value so a verifier can detect deletion
+/// of the original first row (a non-genesis `prev_hash` on row 0 fails closed).
+pub const GENESIS_PREV_HASH: &str =
+    "0000000000000000000000000000000000000000000000000000000000000000";
+
 /// One audit event line.
+///
+/// `prev_hash` links this row to the SHA-256 of the previous row's canonical
+/// bytes (see [`crate::signing::record_hash`]), making the JSONL a genuine
+/// hash chain: truncation, reordering, or deletion of any row breaks the
+/// contiguous linkage and is caught by [`crate::verify_events`] — even for
+/// unsigned rows, where per-row Ed25519 signatures provide no cross-row
+/// integrity.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriftlockEvent {
+    /// Hex SHA-256 of the previous row's canonical bytes, or
+    /// [`GENESIS_PREV_HASH`] for the first row. Bound into the signing preimage,
+    /// so tampering with the linkage also invalidates the signature on signed
+    /// rows.
+    #[serde(default = "genesis_prev_hash")]
+    pub prev_hash: String,
     /// `CloudEvents` type.
     pub event: String,
     /// RFC3339 timestamp.
@@ -74,6 +94,10 @@ pub struct DriftlockEvent {
     /// Extra payload.
     #[serde(default)]
     pub metadata: BTreeMap<String, Value>,
+}
+
+fn genesis_prev_hash() -> String {
+    GENESIS_PREV_HASH.to_string()
 }
 
 /// Reads provenance from environment (`DRIFTLOCK_*`).
@@ -122,14 +146,21 @@ pub fn append_event(
         redact_value(value);
     }
 
+    let path = crate::paths::events_path(paths);
+    // Link this row to the SHA-256 of the previous row, forming a hash chain.
+    // Reading the head before appending must happen under the same logical
+    // append so concurrent writers do not fork the chain (single-writer model;
+    // the contiguity check at verify time still detects any fork after the
+    // fact).
+    let prev_hash = chain_head(&path)?;
     let line = DriftlockEvent {
+        prev_hash,
         event: kind.type_id().to_string(),
         at: Utc::now().to_rfc3339(),
         actor: actor.to_string(),
         task: task.map(str::to_string),
         metadata: meta,
     };
-    let path = crate::paths::events_path(paths);
     let json = if let Some(key) = load_active_signing_key(&paths.repo_root)? {
         serde_json::to_string(&sign_event_line(&line, &key)?)?
     } else {
