@@ -63,6 +63,59 @@
     }
   },
   "definitions": {
+    "AcceptanceGate": {
+      "description": "A single acceptance obligation attached to a work order.\n\nSerialized untagged so that a bare JSON string deserializes to [`AcceptanceGate::Advisory`]. This keeps every pre-existing `acceptance: [\"cargo test ...\"]` array valid: an unstructured string is an advisory, human-checked gate that Driftlock does NOT verify. Structured variants ([`AcceptanceGate::FileExists`] and [`AcceptanceGate::FileContains`]) are deterministic, non-executing checks Driftlock evaluates itself. [`AcceptanceGate::Command`] is a typed, machine-checkable obligation that Driftlock surfaces but does NOT execute (Driftlock is not an execution sandbox); a delegating runner (corcept Stop-gate, CI, or `--allow-exec`) owns isolation.",
+      "anyOf": [
+        {
+          "description": "Deterministic check: the path must exist under the repo root.",
+          "type": "object",
+          "required": [
+            "file_exists"
+          ],
+          "properties": {
+            "file_exists": {
+              "description": "Repo-relative path that must exist.",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "Deterministic check: the file must exist and contain the needle.",
+          "type": "object",
+          "required": [
+            "file_contains",
+            "needle"
+          ],
+          "properties": {
+            "file_contains": {
+              "description": "Repo-relative path that must exist and be readable as UTF-8.",
+              "type": "string"
+            },
+            "needle": {
+              "description": "Substring that must be present in the file body.",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "Typed, machine-checkable command obligation. Surfaced, never executed by Driftlock unless an explicit `--allow-exec` delegating runner opts in.",
+          "type": "object",
+          "required": [
+            "command"
+          ],
+          "properties": {
+            "command": {
+              "description": "Command line a downstream runner must execute and pass.",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "description": "Free-text, human-checked obligation. Advisory and unverified by Driftlock. Back-compat for the historical `Vec<String>` shape.",
+          "type": "string"
+        }
+      ]
+    },
     "Confidence": {
       "description": "Extraction and inference confidence.",
       "type": "object",
@@ -457,7 +510,7 @@
           "default": [],
           "type": "array",
           "items": {
-            "type": "string"
+            "$ref": "#/definitions/AcceptanceGate"
           }
         },
         "confidence": {

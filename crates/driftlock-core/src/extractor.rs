@@ -1,7 +1,7 @@
 //! Deterministic ADR obligation extraction.
 
 use crate::adr::{find_section, sections};
-use crate::model::{Confidence, EvidenceSpan, LaneManifest, TaskStatus, WorkOrder};
+use crate::model::{AcceptanceGate, Confidence, EvidenceSpan, LaneManifest, TaskStatus, WorkOrder};
 use crate::Result;
 use regex::Regex;
 use std::collections::BTreeMap;
@@ -78,7 +78,9 @@ pub fn extract_work_orders_from_adr(
                 deps: Vec::new(),
                 unlocks: Vec::new(),
                 conflicts: Vec::new(),
-                acceptance: vec!["Define acceptance gates before marking ready.".to_string()],
+                acceptance: vec![AcceptanceGate::Advisory(
+                    "Define acceptance gates before marking ready.".to_string(),
+                )],
                 non_goals: vec![
                     "Do not infer unrelated implementation work from ADR prose.".to_string()
                 ],

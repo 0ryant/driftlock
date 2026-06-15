@@ -94,7 +94,7 @@
     "acceptance": {
       "type": "array",
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/acceptanceGate"
       }
     },
     "non_goals": {
@@ -205,6 +205,54 @@
           "maximum": 1
         }
       }
+    },
+    "acceptanceGate": {
+      "description": "An acceptance obligation. A bare string is an advisory, human-checked gate (back-compat). Structured variants are machine-checkable; file_exists/file_contains are verified by driftlock, command is surfaced but not executed by driftlock.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "file_exists"
+          ],
+          "properties": {
+            "file_exists": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "file_contains",
+            "needle"
+          ],
+          "properties": {
+            "file_contains": {
+              "type": "string"
+            },
+            "needle": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "command"
+          ],
+          "properties": {
+            "command": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   }
 }

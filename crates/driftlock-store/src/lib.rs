@@ -9,9 +9,7 @@ mod signing;
 pub use claims::{
     active_claim_for_task, complete_claim, load_claims, new_claim, record_claim, release_claim,
 };
-pub use events::{
-    append_event, provenance_from_env, DriftlockEvent, EventKind, GENESIS_PREV_HASH,
-};
+pub use events::{append_event, provenance_from_env, DriftlockEvent, EventKind, GENESIS_PREV_HASH};
 pub use paths::{claims_path, events_path, graph_path, init_state_dir, StatePaths};
 pub use persistence::{load_graph, save_graph};
 pub use signing::{

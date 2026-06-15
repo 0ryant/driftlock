@@ -1,6 +1,6 @@
 //! Agent brief rendering.
 
-use crate::model::WorkOrder;
+use crate::model::{AcceptanceGate, WorkOrder};
 
 /// Renders a bounded implementation brief.
 pub fn render_agent_brief(task: &WorkOrder) -> String {
@@ -26,7 +26,7 @@ pub fn render_agent_brief(task: &WorkOrder) -> String {
         non_goals = bullets(&task.non_goals),
         deps = bullets(&task.deps),
         unlocks = bullets(&task.unlocks),
-        acceptance = bullets(&task.acceptance),
+        acceptance = acceptance_bullets(&task.acceptance),
     )
 }
 
@@ -35,4 +35,32 @@ fn bullets(items: &[String]) -> String {
         return "- None".to_string();
     }
     items.iter().map(|item| format!("- `{item}`")).collect::<Vec<_>>().join("\n")
+}
+
+/// Renders acceptance gates, marking each with how driftlock treats it so the
+/// contract is honest: deterministic gates are `[driftlock-verified]`, command
+/// obligations are `[delegated]`, and free-text gates are
+/// `[advisory, unverified]`.
+fn acceptance_bullets(gates: &[AcceptanceGate]) -> String {
+    if gates.is_empty() {
+        return "- None".to_string();
+    }
+    gates
+        .iter()
+        .map(|gate| match gate {
+            AcceptanceGate::FileExists { file_exists } => {
+                format!("- [driftlock-verified] file exists: `{file_exists}`")
+            }
+            AcceptanceGate::FileContains { file_contains, needle } => {
+                format!("- [driftlock-verified] `{file_contains}` contains `{needle}`")
+            }
+            AcceptanceGate::Command { command } => {
+                format!("- [delegated, not run by driftlock] `{command}`")
+            }
+            AcceptanceGate::Advisory(text) => {
+                format!("- [advisory, unverified] {text}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }

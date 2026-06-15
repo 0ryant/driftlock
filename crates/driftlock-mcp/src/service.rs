@@ -9,8 +9,8 @@
 use anyhow::{Context, Result};
 use driftlock_core::{
     build_task_graph, detect_graph_conflicts, extract_work_orders_from_adr, find_task,
-    ready_tasks_for_base, render_agent_brief, verify_changed_files, LaneManifest, TaskGraph,
-    TaskStatus,
+    ready_tasks_for_base, render_agent_brief, verify_changed_files_with_gates, LaneManifest,
+    TaskGraph, TaskStatus,
 };
 use driftlock_store::{
     complete_claim, init_state_dir, new_claim, record_claim, release_claim, save_graph,
@@ -152,9 +152,17 @@ impl DriftlockService {
                             .context("no diff/changed_files provided and git fallback failed")?
                     }
                 };
-                let report = verify_changed_files(wo, &files);
+                // Evaluate deterministic acceptance gates alongside the
+                // write-set check. Driftlock never executes command gates over
+                // MCP (it is not an execution sandbox), so allow_exec is false:
+                // commands are surfaced as obligations, not run.
+                let report = verify_changed_files_with_gates(wo, &files, &self.repo_root, false);
                 if !report.allowed {
-                    anyhow::bail!("diff verification failed: {:?}", report.violations);
+                    anyhow::bail!(
+                        "completion blocked: violations={:?} gate_results={:?}",
+                        report.violations,
+                        report.gate_results
+                    );
                 }
                 complete_claim(&paths, task_id, actor)?;
                 if let Some(t) = graph.tasks.iter_mut().find(|t| t.id == task_id) {
@@ -174,7 +182,12 @@ impl DriftlockService {
                 let task_id = required_str(&args, "task_id")?;
                 let task = find_task(&graph, task_id).context("task not found")?;
                 let files = changed_files_from_args(&args)?.unwrap_or_default();
-                Ok(serde_json::to_value(verify_changed_files(task, &files))?)
+                Ok(serde_json::to_value(verify_changed_files_with_gates(
+                    task,
+                    &files,
+                    &self.repo_root,
+                    false,
+                ))?)
             }
             "list_skills" => Ok(serde_json::to_value(
                 driftlock_skills::skills()
@@ -401,9 +414,10 @@ fn changed_files_from_args(args: &Value) -> Result<Option<Vec<String>>> {
     if let Some(diff) = args.get("diff").and_then(Value::as_str) {
         return Ok(Some(driftlock_git::changed_files_from_diff(diff)));
     }
-    Ok(args.get("changed_files").and_then(Value::as_array).map(|items| {
-        items.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect()
-    }))
+    Ok(args
+        .get("changed_files")
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_str).map(ToOwned::to_owned).collect()))
 }
 
 #[cfg(test)]
@@ -445,9 +459,6 @@ mod tests {
     #[test]
     fn changed_files_from_args_distinguishes_absent_from_empty() {
         assert!(changed_files_from_args(&json!({})).unwrap().is_none());
-        assert_eq!(
-            changed_files_from_args(&json!({"changed_files": []})).unwrap(),
-            Some(vec![])
-        );
+        assert_eq!(changed_files_from_args(&json!({"changed_files": []})).unwrap(), Some(vec![]));
     }
 }

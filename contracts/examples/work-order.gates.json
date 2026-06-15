@@ -1,0 +1,38 @@
+{
+  "id": "adr-0002:T02",
+  "title": "Typed acceptance gates",
+  "source": {
+    "adr": "docs/adrs/0002-taskgraph-primary-artifact.md",
+    "adr_revision": "scaffold",
+    "section": "Obligations",
+    "start_line": 13,
+    "end_line": 15,
+    "evidence": "Acceptance gates must be machine-checkable where possible."
+  },
+  "intent": "Demonstrate the typed AcceptanceGate contract with deterministic, command, and advisory gates.",
+  "lane": "core",
+  "status": "ready",
+  "write_set": [
+    "crates/driftlock-core/src/acceptance.rs"
+  ],
+  "read_set": [],
+  "exclusive_resources": [],
+  "deps": [],
+  "unlocks": [],
+  "conflicts": [],
+  "acceptance": [
+    { "file_exists": "crates/driftlock-core/src/acceptance.rs" },
+    { "file_contains": "CHANGELOG.md", "needle": "acceptance" },
+    { "command": "cargo test -p driftlock-core" },
+    "Reviewer confirms the gate semantics read clearly."
+  ],
+  "non_goals": [
+    "Do not execute command gates inside driftlock."
+  ],
+  "confidence": {
+    "task_extraction": 0.95,
+    "file_scope": 0.9,
+    "dependency_edges": 0.85
+  },
+  "metadata": {}
+}

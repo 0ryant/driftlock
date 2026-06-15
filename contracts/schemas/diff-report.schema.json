@@ -33,6 +33,12 @@
       "items": {
         "type": "string"
       }
+    },
+    "gate_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/gateResult"
+      }
     }
   },
   "$defs": {
@@ -47,6 +53,33 @@
           "type": "string"
         },
         "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "gateResult": {
+      "type": "object",
+      "required": [
+        "kind",
+        "subject",
+        "status",
+        "detail"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unverified"
+          ]
+        },
+        "detail": {
           "type": "string"
         }
       }

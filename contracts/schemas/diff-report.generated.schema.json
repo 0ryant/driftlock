@@ -14,6 +14,14 @@
       "description": "Whether the diff is allowed.",
       "type": "boolean"
     },
+    "gate_results": {
+      "description": "Per-gate acceptance results. Empty when no gates were evaluated.",
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GateResult"
+      }
+    },
     "task_id": {
       "description": "Task ID.",
       "type": "string"
@@ -59,6 +67,64 @@
           "type": "string"
         }
       }
+    },
+    "GateResult": {
+      "description": "Result of evaluating one acceptance gate.",
+      "type": "object",
+      "required": [
+        "detail",
+        "kind",
+        "status",
+        "subject"
+      ],
+      "properties": {
+        "detail": {
+          "description": "Human- and weak-model-legible reason for the status.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Gate kind label (`file_exists`, `file_contains`, `command`, `advisory`).",
+          "type": "string"
+        },
+        "status": {
+          "description": "Evaluation status.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/GateStatus"
+            }
+          ]
+        },
+        "subject": {
+          "description": "The gate's primary subject (path, command, or advisory text).",
+          "type": "string"
+        }
+      }
+    },
+    "GateStatus": {
+      "description": "Verdict for one evaluated [`AcceptanceGate`].\n\n`Pass`/`Fail` are reserved for gates Driftlock actually verified. Gates it cannot or will not verify are honestly reported as `Unverified` so the completion contract never over-claims.",
+      "oneOf": [
+        {
+          "description": "Driftlock evaluated the gate and it passed.",
+          "type": "string",
+          "enum": [
+            "pass"
+          ]
+        },
+        {
+          "description": "Driftlock evaluated the gate and it failed (fails closed).",
+          "type": "string",
+          "enum": [
+            "fail"
+          ]
+        },
+        {
+          "description": "Driftlock did not verify the gate (advisory text, or a surfaced-only command obligation). Treated as not-satisfied for blocking decisions.",
+          "type": "string",
+          "enum": [
+            "unverified"
+          ]
+        }
+      ]
     }
   }
 }
