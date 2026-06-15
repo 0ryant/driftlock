@@ -47,8 +47,14 @@ fn ledger_with(n: usize) -> tempfile::TempDir {
     let dir = tempdir().unwrap();
     let paths = init_state_dir(dir.path()).unwrap();
     for i in 0..n {
-        append_event(&paths, EventKind::TaskClaimed, "test", Some(&format!("t-{i}")), BTreeMap::new())
-            .unwrap();
+        append_event(
+            &paths,
+            EventKind::TaskClaimed,
+            "test",
+            Some(&format!("t-{i}")),
+            BTreeMap::new(),
+        )
+        .unwrap();
     }
     dir
 }
@@ -148,8 +154,14 @@ fn signed_chain_also_verifies_end_to_end() {
     let info = generate_operator_key(dir.path(), false).unwrap();
     trust_operator_key(dir.path(), &info.key_id).unwrap();
     for i in 0..3 {
-        append_event(&paths, EventKind::TaskClaimed, "test", Some(&format!("t-{i}")), BTreeMap::new())
-            .unwrap();
+        append_event(
+            &paths,
+            EventKind::TaskClaimed,
+            "test",
+            Some(&format!("t-{i}")),
+            BTreeMap::new(),
+        )
+        .unwrap();
     }
     let report = verify_events(dir.path(), true).unwrap();
     assert!(report.is_pass(), "signed + chained ledger must verify: {report:?}");

@@ -28,6 +28,93 @@ pub struct EvidenceSpan {
     pub evidence: Option<String>,
 }
 
+/// A single acceptance obligation attached to a work order.
+///
+/// Serialized untagged so that a bare JSON string deserializes to
+/// [`AcceptanceGate::Advisory`]. This keeps every pre-existing
+/// `acceptance: ["cargo test ..."]` array valid: an unstructured string is an
+/// advisory, human-checked gate that Driftlock does NOT verify. Structured
+/// variants ([`AcceptanceGate::FileExists`] and [`AcceptanceGate::FileContains`])
+/// are deterministic, non-executing checks Driftlock evaluates itself.
+/// [`AcceptanceGate::Command`] is a typed, machine-checkable obligation that
+/// Driftlock surfaces but does NOT execute (Driftlock is not an execution
+/// sandbox); a delegating runner (corcept Stop-gate, CI, or `--allow-exec`)
+/// owns isolation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum AcceptanceGate {
+    /// Deterministic check: the path must exist under the repo root.
+    FileExists {
+        /// Repo-relative path that must exist.
+        file_exists: String,
+    },
+    /// Deterministic check: the file must exist and contain the needle.
+    FileContains {
+        /// Repo-relative path that must exist and be readable as UTF-8.
+        file_contains: String,
+        /// Substring that must be present in the file body.
+        needle: String,
+    },
+    /// Typed, machine-checkable command obligation. Surfaced, never executed by
+    /// Driftlock unless an explicit `--allow-exec` delegating runner opts in.
+    Command {
+        /// Command line a downstream runner must execute and pass.
+        command: String,
+    },
+    /// Free-text, human-checked obligation. Advisory and unverified by
+    /// Driftlock. Back-compat for the historical `Vec<String>` shape.
+    Advisory(String),
+}
+
+impl AcceptanceGate {
+    /// Whether Driftlock can verify this gate deterministically and offline.
+    #[must_use]
+    pub fn is_deterministic(&self) -> bool {
+        matches!(self, AcceptanceGate::FileExists { .. } | AcceptanceGate::FileContains { .. })
+    }
+
+    /// Short, weak-model-legible label for the gate kind.
+    #[must_use]
+    pub fn kind_label(&self) -> &'static str {
+        match self {
+            AcceptanceGate::FileExists { .. } => "file_exists",
+            AcceptanceGate::FileContains { .. } => "file_contains",
+            AcceptanceGate::Command { .. } => "command",
+            AcceptanceGate::Advisory(_) => "advisory",
+        }
+    }
+}
+
+/// Verdict for one evaluated [`AcceptanceGate`].
+///
+/// `Pass`/`Fail` are reserved for gates Driftlock actually verified. Gates it
+/// cannot or will not verify are honestly reported as `Unverified` so the
+/// completion contract never over-claims.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum GateStatus {
+    /// Driftlock evaluated the gate and it passed.
+    Pass,
+    /// Driftlock evaluated the gate and it failed (fails closed).
+    Fail,
+    /// Driftlock did not verify the gate (advisory text, or a surfaced-only
+    /// command obligation). Treated as not-satisfied for blocking decisions.
+    Unverified,
+}
+
+/// Result of evaluating one acceptance gate.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct GateResult {
+    /// Gate kind label (`file_exists`, `file_contains`, `command`, `advisory`).
+    pub kind: String,
+    /// The gate's primary subject (path, command, or advisory text).
+    pub subject: String,
+    /// Evaluation status.
+    pub status: GateStatus,
+    /// Human- and weak-model-legible reason for the status.
+    pub detail: String,
+}
+
 /// Work order status.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -153,7 +240,7 @@ pub struct WorkOrder {
     pub conflicts: Vec<Conflict>,
     /// Acceptance gates.
     #[serde(default)]
-    pub acceptance: Vec<String>,
+    pub acceptance: Vec<AcceptanceGate>,
     /// Explicit non-goals.
     #[serde(default)]
     pub non_goals: Vec<String>,
@@ -278,6 +365,9 @@ pub struct DiffReport {
     /// Warnings.
     #[serde(default)]
     pub warnings: Vec<String>,
+    /// Per-gate acceptance results. Empty when no gates were evaluated.
+    #[serde(default)]
+    pub gate_results: Vec<GateResult>,
 }
 
 /// Claim state.

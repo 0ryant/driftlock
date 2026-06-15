@@ -1,7 +1,9 @@
 //! Diff verification.
 
+use crate::acceptance::evaluate_gates;
 use crate::model::{DiffReport, DiffViolation, WorkOrder};
 use globset::{Glob, GlobSetBuilder};
+use std::path::Path;
 
 /// Verifies touched files against the work order write set.
 ///
@@ -18,9 +20,8 @@ pub fn verify_changed_files(task: &WorkOrder, touched_files: &[String]) -> DiffR
         } else if let Ok(glob) = Glob::new(&glob_escape_literal(pattern)) {
             builder.add(glob);
         } else {
-            warnings.push(format!(
-                "write-set pattern failed to compile and was skipped: {pattern}"
-            ));
+            warnings
+                .push(format!("write-set pattern failed to compile and was skipped: {pattern}"));
         }
     }
     let set = builder.build().ok();
@@ -53,7 +54,36 @@ pub fn verify_changed_files(task: &WorkOrder, touched_files: &[String]) -> DiffR
         touched_files: touched_files.to_vec(),
         violations,
         warnings,
+        gate_results: Vec::new(),
     }
+}
+
+/// Verifies the write-set boundary AND evaluates deterministic acceptance gates.
+///
+/// This is the completion-path entry point: it folds the gate results into the
+/// returned [`DiffReport`] and tightens `allowed` so that any FAILED
+/// deterministic gate ([`crate::model::AcceptanceGate::FileExists`] /
+/// [`crate::model::AcceptanceGate::FileContains`]) blocks completion, in
+/// addition to the existing write-set and empty-diff checks. Advisory and
+/// surfaced-only command gates are reported but never silently block; they are
+/// honestly marked unverified.
+///
+/// `repo_root` roots the deterministic file checks; `allow_exec` only changes
+/// how command obligations are described (driftlock-core never spawns a
+/// process — see [`crate::acceptance`]).
+pub fn verify_changed_files_with_gates(
+    task: &WorkOrder,
+    touched_files: &[String],
+    repo_root: &Path,
+    allow_exec: bool,
+) -> DiffReport {
+    let mut report = verify_changed_files(task, touched_files);
+    let outcome = evaluate_gates(&task.acceptance, repo_root, allow_exec);
+    // Fail closed: a failed deterministic gate blocks completion even if the
+    // write-set check passed.
+    report.allowed = report.allowed && outcome.deterministic_gates_passed();
+    report.gate_results = outcome.results;
+    report
 }
 
 fn glob_escape_literal(path: &str) -> String {
@@ -62,9 +92,10 @@ fn glob_escape_literal(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::verify_changed_files;
+    use super::{verify_changed_files, verify_changed_files_with_gates};
     use crate::model::*;
     use std::collections::BTreeMap;
+    use std::fs;
 
     #[test]
     fn rejects_out_of_scope_file() {
@@ -138,5 +169,65 @@ mod tests {
         let task = sample_task(vec!["src/**".into()]);
         let report = verify_changed_files(&task, &["src/lib.rs".into()]);
         assert!(report.allowed);
+    }
+
+    #[test]
+    fn gate_results_empty_by_default() {
+        let task = sample_task(vec!["src/**".into()]);
+        let report = verify_changed_files(&task, &["src/lib.rs".into()]);
+        assert!(report.gate_results.is_empty());
+    }
+
+    #[test]
+    fn passing_file_exists_gate_allows_completion() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src/lib.rs"), "x").unwrap();
+        let mut task = sample_task(vec!["src/**".into()]);
+        task.acceptance = vec![AcceptanceGate::FileExists { file_exists: "src/lib.rs".into() }];
+        let report =
+            verify_changed_files_with_gates(&task, &["src/lib.rs".into()], dir.path(), false);
+        assert!(report.allowed);
+        assert_eq!(report.gate_results.len(), 1);
+        assert_eq!(report.gate_results[0].status, GateStatus::Pass);
+    }
+
+    #[test]
+    fn failing_gate_blocks_otherwise_clean_diff() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src/lib.rs"), "x").unwrap();
+        let mut task = sample_task(vec!["src/**".into()]);
+        // Write-set check passes (src/lib.rs is in scope) but the required
+        // CHANGELOG entry is missing -> completion must fail closed.
+        task.acceptance = vec![AcceptanceGate::FileContains {
+            file_contains: "src/lib.rs".into(),
+            needle: "ABSENT-MARKER".into(),
+        }];
+        let clean = verify_changed_files(&task, &["src/lib.rs".into()]);
+        assert!(clean.allowed, "precondition: write-set check alone passes");
+        let report =
+            verify_changed_files_with_gates(&task, &["src/lib.rs".into()], dir.path(), false);
+        assert!(!report.allowed, "failed acceptance gate must block completion");
+        assert_eq!(report.gate_results[0].status, GateStatus::Fail);
+    }
+
+    #[test]
+    fn advisory_string_gate_back_compat_does_not_block() {
+        // Legacy Vec<String> acceptance entries deserialize to Advisory and are
+        // surfaced as unverified, never blocking on their own.
+        let json = r#"["cargo test -p driftlock-core"]"#;
+        let acceptance: Vec<AcceptanceGate> = serde_json::from_str(json).unwrap();
+        assert_eq!(acceptance[0], AcceptanceGate::Advisory("cargo test -p driftlock-core".into()));
+
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("src")).unwrap();
+        fs::write(dir.path().join("src/lib.rs"), "x").unwrap();
+        let mut task = sample_task(vec!["src/**".into()]);
+        task.acceptance = acceptance;
+        let report =
+            verify_changed_files_with_gates(&task, &["src/lib.rs".into()], dir.path(), false);
+        assert!(report.allowed, "advisory gate must not block completion");
+        assert_eq!(report.gate_results[0].status, GateStatus::Unverified);
     }
 }

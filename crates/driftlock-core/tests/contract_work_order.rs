@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use driftlock_core::{Confidence, EvidenceSpan, TaskStatus, WorkOrder};
+use driftlock_core::{AcceptanceGate, Confidence, EvidenceSpan, TaskStatus, WorkOrder};
 use std::collections::BTreeMap;
 
 #[test]
@@ -10,6 +10,23 @@ fn contract_work_order_roundtrip() {
     assert_eq!(parsed.id, "adr-0002:T01");
     assert_eq!(parsed.status, TaskStatus::Complete);
     assert!(!parsed.write_set.is_empty());
+    // Legacy string acceptance entries deserialize to Advisory (back-compat).
+    assert!(matches!(parsed.acceptance.first(), Some(AcceptanceGate::Advisory(_))));
+}
+
+#[test]
+fn contract_typed_acceptance_gates_roundtrip() {
+    let json = include_str!("../../../contracts/examples/work-order.gates.json");
+    let parsed: WorkOrder = serde_json::from_str(json).expect("gates example must parse");
+    assert_eq!(parsed.acceptance.len(), 4);
+    assert!(matches!(parsed.acceptance[0], AcceptanceGate::FileExists { .. }));
+    assert!(matches!(parsed.acceptance[1], AcceptanceGate::FileContains { .. }));
+    assert!(matches!(parsed.acceptance[2], AcceptanceGate::Command { .. }));
+    assert!(matches!(parsed.acceptance[3], AcceptanceGate::Advisory(_)));
+    // Re-serialize and re-parse to prove the untagged round-trip is stable.
+    let s = serde_json::to_string(&parsed.acceptance).unwrap();
+    let back: Vec<AcceptanceGate> = serde_json::from_str(&s).unwrap();
+    assert_eq!(back, parsed.acceptance);
 }
 
 #[test]

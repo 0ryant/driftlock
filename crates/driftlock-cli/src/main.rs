@@ -7,7 +7,7 @@ use clap::{Parser, Subcommand};
 use driftlock_core::{
     blocked_by_deps, build_task_graph, detect_graph_conflicts, extract_work_orders_from_adr,
     find_task, load_lane_manifest, promote_to_ready, ready_tasks_for_base, render_agent_brief,
-    unlocks_for, verify_changed_files, TaskGraph, TaskStatus, WorkOrder,
+    unlocks_for, verify_changed_files_with_gates, TaskGraph, TaskStatus, WorkOrder,
 };
 use driftlock_store::{
     append_event, complete_claim, generate_operator_key, init_state_dir, load_graph, new_claim,
@@ -121,6 +121,11 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
+        /// Delegate command-gate execution to an external runner. Driftlock
+        /// itself never spawns a process; this only changes how command
+        /// obligations are described.
+        #[arg(long)]
+        allow_exec: bool,
     },
     /// Claim a ready task.
     Claim {
@@ -156,6 +161,11 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
+        /// Delegate command-gate execution to an external runner. Driftlock
+        /// itself never spawns a process; this only changes how command
+        /// obligations are described.
+        #[arg(long)]
+        allow_exec: bool,
     },
     /// Recompute conflicts and refresh graph metadata.
     Refresh {
@@ -314,11 +324,11 @@ fn main() -> Result<()> {
             println!("{}", render_agent_brief(task));
             Ok(())
         }
-        Command::CheckDiff { graph, task, diff_file, changed, repo } => {
+        Command::CheckDiff { graph, task, diff_file, changed, repo, allow_exec } => {
             let g = read_graph_file(&graph)?;
             let task = find_task(&g, &task).context("task not found")?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files(task, &touched);
+            let report = verify_changed_files_with_gates(task, &touched, &repo, allow_exec);
             println!("{}", serde_json::to_string_pretty(&report)?);
             Ok(())
         }
@@ -336,14 +346,18 @@ fn main() -> Result<()> {
             release_claim(&paths, &task, &actor)?;
             Ok(())
         }
-        Command::Complete { graph, task, actor, diff_file, changed, repo } => {
+        Command::Complete { graph, task, actor, diff_file, changed, repo, allow_exec } => {
             let paths = init_state_dir(&repo)?;
             let g = read_graph_file(&graph)?;
             let wo = find_task(&g, &task).context("task not found")?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files(wo, &touched);
+            let report = verify_changed_files_with_gates(wo, &touched, &repo, allow_exec);
             if !report.allowed {
-                bail!("diff verification failed: {:?}", report.violations);
+                bail!(
+                    "completion blocked: violations={:?} gate_results={:?}",
+                    report.violations,
+                    report.gate_results
+                );
             }
             complete_claim(&paths, &task, &actor)?;
             let mut g = g;

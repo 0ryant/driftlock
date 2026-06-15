@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Typed acceptance gates.** `WorkOrder.acceptance` is now a typed
+  `AcceptanceGate` (serde untagged): a bare string still deserializes to
+  `Advisory` (back-compat), while structured `{file_exists}` and
+  `{file_contains, needle}` gates are deterministic, offline, fail-closed checks
+  Driftlock evaluates itself at `complete_task` / `verify_diff_against_task`
+  (and CLI `complete` / `check-diff`). Results are surfaced on
+  `DiffReport.gate_results` and a FAILED deterministic gate now blocks
+  completion. `{command}` gates are typed, machine-checkable obligations
+  Driftlock **surfaces but never executes** (it is not an execution sandbox);
+  isolation is delegated to CI / corcept / an explicit `--allow-exec` runner.
+  Prose gates render as `[advisory, unverified]` so the completion contract is
+  honest. Path traversal outside the repo root is rejected fail-closed. Schemas
+  (`work-order`, `diff-report`) and generated mirrors updated; new contract
+  example `work-order.gates.json`.
+
 - Audit log is now a genuine **hash chain**: each `events.jsonl` row carries a
   `prev_hash` linking it to the SHA-256 of the previous row (genesis = 64 hex
   zeros). `audit verify` fails closed on a broken chain, detecting row deletion,

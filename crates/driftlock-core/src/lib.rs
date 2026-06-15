@@ -1,5 +1,6 @@
 //! Core domain model and safety logic for Driftlock.
 
+pub mod acceptance;
 pub mod adr;
 pub mod brief;
 pub mod conflict;
@@ -11,9 +12,10 @@ pub mod model;
 pub mod readiness;
 pub mod schema;
 
+pub use acceptance::{evaluate_gates, AcceptanceOutcome};
 pub use brief::render_agent_brief;
 pub use conflict::{attach_conflicts_to_tasks, detect_conflicts, detect_graph_conflicts};
-pub use diff::verify_changed_files;
+pub use diff::{verify_changed_files, verify_changed_files_with_gates};
 pub use error::{DriftlockError, Result};
 pub use extractor::{extract_work_orders_from_adr, load_lane_manifest};
 pub use graph::{build_task_graph, find_task, promote_to_ready};
