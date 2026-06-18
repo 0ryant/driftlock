@@ -1,22 +1,25 @@
 #![allow(clippy::too_many_lines, missing_docs)]
 
 mod doctor;
+mod support;
 
-use anyhow::{bail, Context, Result};
+use axiom_exit::Exit;
 use clap::{Parser, Subcommand};
 use driftlock_core::{
     blocked_by_deps, build_task_graph, detect_graph_conflicts, extract_work_orders_from_adr,
     find_task, load_lane_manifest, promote_to_ready, ready_tasks_for_base, render_agent_brief,
-    unlocks_for, verify_changed_files_with_gates, TaskGraph, TaskStatus, WorkOrder,
+    unlocks_for, verify_changed_files, TaskGraph, TaskStatus, WorkOrder,
 };
 use driftlock_store::{
     append_event, complete_claim, generate_operator_key, init_state_dir, load_graph, new_claim,
-    record_claim, release_claim, save_graph, trust_operator_key, verify_events, EventKind,
-    StatePaths,
+    record_claim, release_claim, save_graph, trust_operator_key, verify_audit_chain, verify_events,
+    Artifact, ChainVerdict, EventKind, StatePaths,
 };
 use std::collections::BTreeMap;
-use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
+
+use support::{io_err, json_err, record_operation, CliError, CliResult};
 
 #[derive(Debug, Parser)]
 #[command(name = "driftlock", version, about = "ADR-derived work orders and safe lanes for agents")]
@@ -121,11 +124,6 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
-        /// Delegate command-gate execution to an external runner. Driftlock
-        /// itself never spawns a process; this only changes how command
-        /// obligations are described.
-        #[arg(long)]
-        allow_exec: bool,
     },
     /// Claim a ready task.
     Claim {
@@ -161,11 +159,6 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
-        /// Delegate command-gate execution to an external runner. Driftlock
-        /// itself never spawns a process; this only changes how command
-        /// obligations are described.
-        #[arg(long)]
-        allow_exec: bool,
     },
     /// Recompute conflicts and refresh graph metadata.
     Refresh {
@@ -191,7 +184,7 @@ enum Command {
         #[command(subcommand)]
         command: KeyCommand,
     },
-    /// Audit event ledger.
+    /// Audit event ledger and the doctrine audit trail.
     Audit {
         #[command(subcommand)]
         command: AuditCommand,
@@ -225,22 +218,46 @@ enum AuditCommand {
         #[arg(long)]
         signed: bool,
     },
+    /// Verify the `audit-trail.jsonl` BLAKE3 hash chain (axiom.audit.v1).
+    VerifyChain {
+        #[arg(default_value = ".")]
+        repo: PathBuf,
+    },
 }
 
-fn main() -> Result<()> {
+fn main() -> ExitCode {
+    // clap handles its own usage/help exit (code 2) before we run.
     let cli = Cli::parse();
-    match cli.command {
+    match run(cli.command) {
+        Ok(exit) => exit.into(),
+        Err(err) => {
+            eprintln!("error: {err}");
+            ExitCode::from(err.exit)
+        }
+    }
+}
+
+fn run(command: Command) -> CliResult<Exit> {
+    match command {
         Command::Init { repo } => {
-            let paths = init_state_dir(&repo)?;
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
             seed_graph_from_canonical_ledger(&paths)?;
             println!("initialized {}", paths.state_dir.display());
-            Ok(())
+            Ok(Exit::Ok)
         }
-        Command::Doctor { strict, repo } => doctor::run(strict, &repo),
-        Command::ExportSchemas { out_dir } => driftlock_contracts::write_schemas(out_dir),
+        Command::Doctor { strict, repo } => match doctor::run(strict, &repo) {
+            Ok(()) => Ok(Exit::Ok),
+            // doctor failures are preflight/environment problems, not assertions.
+            Err(e) => Err(CliError::preflight(e.to_string())),
+        },
+        Command::ExportSchemas { out_dir } => {
+            driftlock_contracts::write_schemas(out_dir).map_err(preflight("export schemas"))?;
+            Ok(Exit::Ok)
+        }
         Command::Extract { adr, lanes, lane, out } => {
-            let lane_manifest = load_lane_manifest(&lanes)?;
-            let text = fs::read_to_string(&adr)?;
+            let lane_manifest =
+                load_lane_manifest(&lanes).map_err(preflight("load lane manifest"))?;
+            let text = std::fs::read_to_string(&adr).map_err(io_err("read ADR"))?;
             let base = driftlock_git::current_head(".").unwrap_or_else(|_| "working-tree".into());
             let tasks = extract_work_orders_from_adr(
                 &adr.to_string_lossy(),
@@ -249,18 +266,19 @@ fn main() -> Result<()> {
                 &lane,
                 Some(&lane_manifest),
             );
-            let json = serde_json::to_string_pretty(&tasks)?;
+            let json = serde_json::to_string_pretty(&tasks).map_err(json_err("serialize tasks"))?;
             if let Some(out) = out {
-                fs::write(&out, &json)?;
+                std::fs::write(&out, &json).map_err(io_err("write extract output"))?;
             } else {
                 println!("{json}");
             }
-            Ok(())
+            Ok(Exit::Ok)
         }
         Command::BuildGraph { adr, lanes, lane, graph, repo } => {
-            let paths = init_state_dir(&repo)?;
-            let lane_manifest = load_lane_manifest(repo.join(&lanes))?;
-            let text = fs::read_to_string(&adr)?;
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
+            let lane_manifest =
+                load_lane_manifest(repo.join(&lanes)).map_err(preflight("load lane manifest"))?;
+            let text = std::fs::read_to_string(&adr).map_err(io_err("read ADR"))?;
             let base = driftlock_git::current_head(&repo).unwrap_or_else(|_| "working-tree".into());
             let tasks = extract_work_orders_from_adr(
                 &adr.to_string_lossy(),
@@ -276,121 +294,189 @@ fn main() -> Result<()> {
                 tasks,
                 lane_manifest,
             );
-            save_graph(&paths, &built)?;
-            if let Some(path) = graph {
-                write_graph_file(&path, &built)?;
+            save_graph(&paths, &built).map_err(preflight("save graph"))?;
+            if let Some(path) = &graph {
+                write_graph_file(path, &built)?;
             }
-            append_event(&paths, EventKind::GraphBuilt, "cli", None, BTreeMap::new())?;
-            println!("wrote {}", default_graph_path(&paths).display());
-            Ok(())
+            append_event(&paths, EventKind::GraphBuilt, "cli", None, BTreeMap::new())
+                .map_err(preflight("append graph-built event"))?;
+            let graph_path = default_graph_path(&paths);
+            record_operation(
+                &paths,
+                "build-graph",
+                "ok",
+                Exit::Ok.as_i32(),
+                vec![artifact_of_file(&paths.repo_root, &adr)?],
+                vec![artifact_of_file(&paths.repo_root, &graph_path)?],
+                "cli",
+            )?;
+            println!("wrote {}", graph_path.display());
+            Ok(Exit::Ok)
         }
         Command::Promote { graph, task } => {
             let mut g = read_graph_file(&graph)?;
             let t = find_task_mut(&mut g, &task)?;
             promote_to_ready(t);
             write_graph_file(&graph, &g)?;
-            Ok(())
+            Ok(Exit::Ok)
         }
         Command::Ready { graph, lane, repo } => {
             let g = load_graph_for_repo(&repo, graph)?;
             let base = driftlock_git::current_head(&repo).unwrap_or_else(|_| g.base_ref.clone());
             let tasks = ready_tasks_for_base(&g, &lane, &base);
-            println!("{}", serde_json::to_string_pretty(&tasks)?);
-            Ok(())
+            println!("{}", pretty(&tasks)?);
+            Ok(Exit::Ok)
         }
         Command::Conflicts { graph, task } => {
             let g = read_graph_file(&graph)?;
             let report = detect_graph_conflicts(&g);
             if let Some(task) = task {
-                println!("{}", serde_json::to_string_pretty(&report.get(&task))?);
+                println!("{}", pretty(&report.get(&task))?);
             } else {
-                println!("{}", serde_json::to_string_pretty(&report)?);
+                println!("{}", pretty(&report)?);
             }
-            Ok(())
+            Ok(Exit::Ok)
         }
         Command::Deps { graph, task } => {
             let g = read_graph_file(&graph)?;
-            println!("{}", serde_json::to_string_pretty(&blocked_by_deps(&g, &task))?);
-            Ok(())
+            println!("{}", pretty(&blocked_by_deps(&g, &task))?);
+            Ok(Exit::Ok)
         }
         Command::Unlocks { graph, task } => {
             let g = read_graph_file(&graph)?;
-            println!("{}", serde_json::to_string_pretty(&unlocks_for(&g, &task))?);
-            Ok(())
+            println!("{}", pretty(&unlocks_for(&g, &task))?);
+            Ok(Exit::Ok)
         }
         Command::Brief { graph, task } => {
             let g = read_graph_file(&graph)?;
-            let task = find_task(&g, &task).context("task not found")?;
+            let task = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             println!("{}", render_agent_brief(task));
-            Ok(())
+            Ok(Exit::Ok)
         }
-        Command::CheckDiff { graph, task, diff_file, changed, repo, allow_exec } => {
+        Command::CheckDiff { graph, task, diff_file, changed, repo } => {
             let g = read_graph_file(&graph)?;
-            let task = find_task(&g, &task).context("task not found")?;
+            let task = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files_with_gates(task, &touched, &repo, allow_exec);
-            println!("{}", serde_json::to_string_pretty(&report)?);
-            Ok(())
+            let report = verify_changed_files(task, &touched);
+            println!("{}", pretty(&report)?);
+            // A write-set escape is a checked assertion, not a crash: exit 1.
+            if report.allowed {
+                Ok(Exit::Ok)
+            } else {
+                Err(CliError::assertion(format!(
+                    "diff verification failed: {:?}",
+                    report.violations
+                )))
+            }
         }
         Command::Claim { graph, task, actor, repo } => {
-            let paths = init_state_dir(&repo)?;
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
             let g = read_graph_file(&graph)?;
-            let wo = find_task(&g, &task).context("task not found")?;
+            let wo = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             let base = driftlock_git::current_head(&repo).unwrap_or_else(|_| g.base_ref.clone());
             let claim = new_claim(&task, &actor, &base, wo.write_set.clone());
-            record_claim(&paths, &claim, &actor)?;
-            Ok(())
+            record_claim(&paths, &claim, &actor).map_err(preflight("record claim"))?;
+            record_operation(
+                &paths,
+                "claim",
+                "ok",
+                Exit::Ok.as_i32(),
+                vec![Artifact::of_bytes("task", &task, task.as_bytes())],
+                vec![],
+                &actor,
+            )?;
+            Ok(Exit::Ok)
         }
         Command::Release { task, actor, repo } => {
-            let paths = init_state_dir(&repo)?;
-            release_claim(&paths, &task, &actor)?;
-            Ok(())
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
+            release_claim(&paths, &task, &actor).map_err(preflight("release claim"))?;
+            record_operation(
+                &paths,
+                "release",
+                "ok",
+                Exit::Ok.as_i32(),
+                vec![Artifact::of_bytes("task", &task, task.as_bytes())],
+                vec![],
+                &actor,
+            )?;
+            Ok(Exit::Ok)
         }
-        Command::Complete { graph, task, actor, diff_file, changed, repo, allow_exec } => {
-            let paths = init_state_dir(&repo)?;
+        Command::Complete { graph, task, actor, diff_file, changed, repo } => {
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
             let g = read_graph_file(&graph)?;
-            let wo = find_task(&g, &task).context("task not found")?;
+            let wo = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files_with_gates(wo, &touched, &repo, allow_exec);
+            let report = verify_changed_files(wo, &touched);
             if !report.allowed {
-                bail!(
-                    "completion blocked: violations={:?} gate_results={:?}",
-                    report.violations,
-                    report.gate_results
-                );
+                // A write-set escape on complete is a preflight gate: it stops the
+                // mutation before it lands (FAILED_PREFLIGHT = 3).
+                record_operation(
+                    &paths,
+                    "complete",
+                    "failed",
+                    Exit::Preflight.as_i32(),
+                    vec![Artifact::of_bytes("task", &task, task.as_bytes())],
+                    vec![],
+                    &actor,
+                )?;
+                return Err(CliError::preflight(format!(
+                    "diff verification failed (write-set escape): {:?}",
+                    report.violations
+                )));
             }
-            complete_claim(&paths, &task, &actor)?;
+            complete_claim(&paths, &task, &actor).map_err(preflight("complete claim"))?;
             let mut g = g;
             if let Ok(t) = find_task_mut(&mut g, &task) {
                 t.status = TaskStatus::Complete;
             }
-            save_graph(&paths, &g)?;
-            Ok(())
+            save_graph(&paths, &g).map_err(preflight("save graph"))?;
+            let graph_path = default_graph_path(&paths);
+            record_operation(
+                &paths,
+                "complete",
+                "ok",
+                Exit::Ok.as_i32(),
+                vec![Artifact::of_bytes("task", &task, task.as_bytes())],
+                vec![artifact_of_file(&paths.repo_root, &graph_path)?],
+                &actor,
+            )?;
+            Ok(Exit::Ok)
         }
         Command::Refresh { repo } => {
-            let paths = init_state_dir(&repo)?;
-            let mut g = load_graph(&paths)?;
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
+            let mut g = load_graph(&paths).map_err(preflight("load graph"))?;
             let conflicts = detect_graph_conflicts(&g);
             driftlock_core::attach_conflicts_to_tasks(&mut g.tasks, &conflicts);
             g.generated_at = built_graph_timestamp();
-            save_graph(&paths, &g)?;
-            append_event(&paths, EventKind::ConflictDetected, "cli", None, BTreeMap::new())?;
-            println!("refreshed graph at {}", default_graph_path(&paths).display());
-            Ok(())
+            save_graph(&paths, &g).map_err(preflight("save graph"))?;
+            append_event(&paths, EventKind::ConflictDetected, "cli", None, BTreeMap::new())
+                .map_err(preflight("append conflict event"))?;
+            let graph_path = default_graph_path(&paths);
+            record_operation(
+                &paths,
+                "refresh",
+                "ok",
+                Exit::Ok.as_i32(),
+                vec![],
+                vec![artifact_of_file(&paths.repo_root, &graph_path)?],
+                "cli",
+            )?;
+            println!("refreshed graph at {}", graph_path.display());
+            Ok(Exit::Ok)
         }
         Command::Skills => {
             let names: Vec<_> = driftlock_skills::skills().iter().map(|s| s.name).collect();
-            println!("{}", serde_json::to_string_pretty(&names)?);
-            Ok(())
+            println!("{}", pretty(&names)?);
+            Ok(Exit::Ok)
         }
         Command::Index { repo } => {
-            let index = driftlock_git::index_repo(repo)?;
-            println!("{}", serde_json::to_string_pretty(&index)?);
-            Ok(())
+            let index = driftlock_git::index_repo(repo).map_err(preflight("index repo"))?;
+            println!("{}", pretty(&index)?);
+            Ok(Exit::Ok)
         }
         Command::EmitHostConfig { repo, out } => {
-            fs::create_dir_all(&out)?;
-            let abs = repo.canonicalize()?;
+            std::fs::create_dir_all(&out).map_err(io_err("create host config dir"))?;
+            let abs = repo.canonicalize().map_err(io_err("canonicalize repo"))?;
             let cmd = format!(
                 "cargo run -p driftlock-mcp --manifest-path {} -- stdio --repo {}",
                 abs.join("Cargo.toml").display(),
@@ -405,46 +491,91 @@ fn main() -> Result<()> {
                         }
                     }
                 });
-                fs::write(out.join(format!("{host}.json")), serde_json::to_string_pretty(&cfg)?)?;
+                std::fs::write(out.join(format!("{host}.json")), pretty(&cfg)?)
+                    .map_err(io_err("write host config"))?;
             }
             println!("wrote host configs to {}", out.display());
-            Ok(())
+            Ok(Exit::Ok)
         }
         Command::Key { command } => match command {
             KeyCommand::Generate { repo, force } => {
-                let info = generate_operator_key(&repo, force)?;
-                println!("{}", serde_json::to_string_pretty(&info)?);
+                let info = generate_operator_key(&repo, force).map_err(preflight("generate key"))?;
+                println!("{}", pretty(&info)?);
                 eprintln!(
                     "key generated but NOT trusted. To trust it run:\n  driftlock key trust {} {}",
                     info.key_id,
                     repo.display()
                 );
-                Ok(())
+                Ok(Exit::Ok)
             }
             KeyCommand::Trust { fingerprint, repo } => {
-                let info = trust_operator_key(&repo, &fingerprint)?;
-                println!("{}", serde_json::to_string_pretty(&info)?);
-                Ok(())
+                // A fingerprint mismatch is the operator passing the wrong value:
+                // a usage error (exit 2), not a runtime crash.
+                let info = trust_operator_key(&repo, &fingerprint)
+                    .map_err(|e| CliError::usage(e.to_string()))?;
+                println!("{}", pretty(&info)?);
+                Ok(Exit::Ok)
             }
         },
         Command::Audit { command } => match command {
             AuditCommand::Verify { repo, signed } => {
-                let report = verify_events(&repo, signed)?;
-                println!("{}", serde_json::to_string_pretty(&report)?);
-                if !report.is_pass() {
-                    bail!("audit verify failed");
+                let report = verify_events(&repo, signed).map_err(preflight("verify events"))?;
+                println!("{}", pretty(&report)?);
+                if report.is_pass() {
+                    Ok(Exit::Ok)
+                } else {
+                    // A failed ledger verification is the canonical assertion
+                    // failure (exit 1).
+                    Err(CliError::assertion("audit verify failed"))
                 }
-                Ok(())
+            }
+            AuditCommand::VerifyChain { repo } => {
+                match verify_audit_chain(&repo).map_err(preflight("read audit trail"))? {
+                    ChainVerdict::Valid { rows, head_hash } => {
+                        println!(
+                            "{}",
+                            pretty(&serde_json::json!({
+                                "status": "valid",
+                                "rows": rows,
+                                "head_hash": head_hash,
+                            }))?
+                        );
+                        Ok(Exit::Ok)
+                    }
+                    ChainVerdict::Broken(why) => Err(CliError::assertion(format!(
+                        "audit-trail.jsonl chain broken: {why}"
+                    ))),
+                }
             }
         },
     }
+}
+
+/// Map any displayable error to a preflight failure (exit 3) with context. Used
+/// for the store/core helpers that return either `anyhow::Error` or the crates'
+/// own typed error.
+fn preflight<E: std::fmt::Display>(context: &'static str) -> impl Fn(E) -> CliError {
+    move |e| CliError::preflight(format!("{context}: {e}"))
+}
+
+fn pretty<T: serde::Serialize>(value: &T) -> CliResult<String> {
+    serde_json::to_string_pretty(value).map_err(json_err("serialize output"))
+}
+
+fn artifact_of_file(repo_root: &Path, abs_or_rel: &Path) -> CliResult<Artifact> {
+    let rel = abs_or_rel
+        .strip_prefix(repo_root)
+        .unwrap_or(abs_or_rel)
+        .to_string_lossy()
+        .replace('\\', "/");
+    Artifact::of_file(&rel, abs_or_rel).map_err(|e| CliError::preflight(e.to_string()))
 }
 
 fn default_graph_path(paths: &StatePaths) -> PathBuf {
     driftlock_store::graph_path(paths)
 }
 
-fn seed_graph_from_canonical_ledger(paths: &StatePaths) -> Result<bool> {
+fn seed_graph_from_canonical_ledger(paths: &StatePaths) -> CliResult<bool> {
     let graph_path = default_graph_path(paths);
     if graph_path.exists() {
         return Ok(false);
@@ -453,32 +584,35 @@ fn seed_graph_from_canonical_ledger(paths: &StatePaths) -> Result<bool> {
     if !canonical.exists() {
         return Ok(false);
     }
-    let graph = read_graph_file(&canonical)
-        .with_context(|| format!("read canonical taskgraph {}", canonical.display()))?;
-    save_graph(paths, &graph)?;
+    let graph = read_graph_file(&canonical)?;
+    save_graph(paths, &graph).map_err(preflight("seed graph"))?;
     Ok(true)
 }
 
-fn load_graph_for_repo(repo: &Path, graph: Option<PathBuf>) -> Result<TaskGraph> {
+fn load_graph_for_repo(repo: &Path, graph: Option<PathBuf>) -> CliResult<TaskGraph> {
     if let Some(path) = graph {
         return read_graph_file(&path);
     }
-    let paths = init_state_dir(repo)?;
-    load_graph(&paths)
+    let paths = init_state_dir(repo).map_err(preflight("init state dir"))?;
+    load_graph(&paths).map_err(preflight("load graph"))
 }
 
-fn read_graph_file(path: &Path) -> Result<TaskGraph> {
-    let text = fs::read_to_string(path)?;
-    Ok(serde_json::from_str(&text)?)
+fn read_graph_file(path: &Path) -> CliResult<TaskGraph> {
+    let text = std::fs::read_to_string(path).map_err(io_err("read graph file"))?;
+    serde_json::from_str(&text).map_err(json_err("parse graph file"))
 }
 
-fn write_graph_file(path: &Path, graph: &TaskGraph) -> Result<()> {
-    fs::write(path, serde_json::to_string_pretty(graph)?)?;
+fn write_graph_file(path: &Path, graph: &TaskGraph) -> CliResult<()> {
+    std::fs::write(path, pretty(graph)?).map_err(io_err("write graph file"))?;
     Ok(())
 }
 
-fn find_task_mut<'a>(graph: &'a mut TaskGraph, task_id: &str) -> Result<&'a mut WorkOrder> {
-    graph.tasks.iter_mut().find(|t| t.id == task_id).context("task not found")
+fn find_task_mut<'a>(graph: &'a mut TaskGraph, task_id: &str) -> CliResult<&'a mut WorkOrder> {
+    graph
+        .tasks
+        .iter_mut()
+        .find(|t| t.id == task_id)
+        .ok_or_else(|| CliError::usage("task not found"))
 }
 
 fn built_graph_timestamp() -> String {
@@ -489,15 +623,15 @@ fn touched_files(
     repo: &Path,
     diff_file: Option<PathBuf>,
     changed: Vec<String>,
-) -> Result<Vec<String>> {
+) -> CliResult<Vec<String>> {
     if let Some(diff_file) = diff_file {
-        let diff = fs::read_to_string(diff_file)?;
+        let diff = std::fs::read_to_string(diff_file).map_err(io_err("read diff file"))?;
         return Ok(driftlock_git::changed_files_from_diff(&diff));
     }
     if !changed.is_empty() {
         return Ok(changed);
     }
-    driftlock_git::git_changed_files(repo, "HEAD")
+    driftlock_git::git_changed_files(repo, "HEAD").map_err(preflight("list changed files"))
 }
 
 #[cfg(test)]
@@ -510,9 +644,12 @@ mod tests {
         let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
         let repo = std::env::temp_dir()
             .join(format!("driftlock-init-seed-test-{}-{nonce}", std::process::id()));
-        fs::create_dir_all(repo.join("tasks")).unwrap();
-        fs::write(repo.join("tasks/taskgraph.json"), include_str!("../../../tasks/taskgraph.json"))
-            .unwrap();
+        std::fs::create_dir_all(repo.join("tasks")).unwrap();
+        std::fs::write(
+            repo.join("tasks/taskgraph.json"),
+            include_str!("../../../tasks/taskgraph.json"),
+        )
+        .unwrap();
 
         let paths = init_state_dir(&repo).unwrap();
         assert!(seed_graph_from_canonical_ledger(&paths).unwrap());
@@ -521,6 +658,6 @@ mod tests {
         assert!(!graph.tasks.is_empty());
         assert!(!seed_graph_from_canonical_ledger(&paths).unwrap());
 
-        let _ = fs::remove_dir_all(repo);
+        let _ = std::fs::remove_dir_all(repo);
     }
 }

@@ -49,6 +49,13 @@ rand_core = { version = "0.6", features = ["getrandom"] }
 base64 = "0.22"
 sha2 = "0.11"
 hex = "0.4"
+# axiom-* doctrine crates (Phase-3 conformance), all pinned to the SAME rev so
+# their shared transitive deps resolve to one copy (avoids the dep-dup wart).
+axiom-hash = { git = "https://github.com/0ryant/axiom-doctrine-rs.git", rev = "3f09282" }
+axiom-canonical = { git = "https://github.com/0ryant/axiom-doctrine-rs.git", rev = "3f09282" }
+axiom-audit = { git = "https://github.com/0ryant/axiom-doctrine-rs.git", rev = "3f09282" }
+axiom-receipt = { git = "https://github.com/0ryant/axiom-doctrine-rs.git", rev = "3f09282" }
+axiom-exit = { git = "https://github.com/0ryant/axiom-doctrine-rs.git", rev = "3f09282" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

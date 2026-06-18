@@ -17,9 +17,11 @@ driftlock-core = { version = "0.1.0", path = "../driftlock-core" }
 driftlock-git = { version = "0.1.0", path = "../driftlock-git" }
 driftlock-skills = { version = "0.1.0", path = "../driftlock-skills" }
 driftlock-store = { version = "0.1.0", path = "../driftlock-store" }
+serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 toml.workspace = true
+axiom-exit.workspace = true
 
 [lints]
 workspace = true

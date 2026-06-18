@@ -5,12 +5,15 @@ use anyhow::{Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use ed25519_dalek::{Signer, SigningKey, Verifier, VerifyingKey};
 use rand_core::OsRng;
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SIGN_DOMAIN: &str = "driftlock:events:sign:v1:";
-const CHAIN_DOMAIN: &str = "driftlock:events:chain:v1:";
+// v2 domains mark the BLAKE3 content-addressing migration (ADR-0003): the v1
+// domains hashed with SHA-256, so reusing them would let a v1-signed line be
+// reinterpreted under v2 hashing. Bumping the domain tag fails such cross-version
+// confusion closed and re-genesises the chain.
+const SIGN_DOMAIN: &str = "driftlock:events:sign:v2:";
+const CHAIN_DOMAIN: &str = "driftlock:events:chain:v2:";
 
 /// Signed JSONL envelope.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -177,25 +180,21 @@ pub fn verify_events(repo_root: &Path, require_signed: bool) -> Result<VerifyRep
         // Chain linkage is verified for every row regardless of signing: this
         // is the property that detects truncation, reordering, and deletion —
         // exactly what independent per-row signatures cannot see.
-        match &parsed_event {
-            Some(event) => {
-                if event.prev_hash != expected_prev {
-                    report.status = "fail".into();
-                    report.failures.push(format!(
-                        "line {line_no}: broken hash chain (prev_hash {} != expected {})",
-                        event.prev_hash, expected_prev
-                    ));
-                }
-                // Advance the head to this row's record hash even on mismatch so
-                // a single edit produces one chain failure, not a cascade.
-                expected_prev = record_hash(event)?;
-            }
-            None => {
-                report.status = "fail".into();
-                report.failures.push(format!("line {line_no}: invalid event json"));
-                continue;
-            }
+        let Some(event) = &parsed_event else {
+            report.status = "fail".into();
+            report.failures.push(format!("line {line_no}: invalid event json"));
+            continue;
+        };
+        if event.prev_hash != expected_prev {
+            report.status = "fail".into();
+            report.failures.push(format!(
+                "line {line_no}: broken hash chain (prev_hash {} != expected {})",
+                event.prev_hash, expected_prev
+            ));
         }
+        // Advance the head to this row's record hash even on mismatch so a single
+        // edit produces one chain failure, not a cascade.
+        expected_prev = record_hash(event)?;
 
         if let Ok(signed) = serde_json::from_str::<SignedEventLine>(line) {
             if let Err(reason) = verify_signed_line(repo_root, &signed) {
@@ -236,8 +235,8 @@ fn verify_signed_line(repo_root: &Path, line: &SignedEventLine) -> Result<(), St
 /// pins the exact bytes for a fixed event so such a change cannot land silently.
 fn signing_preimage(event: &DriftlockEvent) -> Result<Vec<u8>> {
     let serialized = serde_json::to_string(event)?;
-    let hash = Sha256::digest(serialized.as_bytes());
-    Ok(format!("{SIGN_DOMAIN}{}", hex::encode(hash)).into_bytes())
+    let hash = axiom_hash::blake3_hex(serialized.as_bytes());
+    Ok(format!("{SIGN_DOMAIN}{hash}").into_bytes())
 }
 
 /// Domain-separated hex SHA-256 over an event's canonical bytes.
@@ -249,10 +248,13 @@ fn signing_preimage(event: &DriftlockEvent) -> Result<Vec<u8>> {
 /// confused with a signing preimage.
 pub fn record_hash(event: &DriftlockEvent) -> Result<String> {
     let serialized = serde_json::to_string(event)?;
-    let mut hasher = Sha256::new();
-    hasher.update(CHAIN_DOMAIN.as_bytes());
-    hasher.update(serialized.as_bytes());
-    Ok(hex::encode(hasher.finalize()))
+    // Domain-separate the chain hash by prefixing the tag onto the hashed bytes
+    // (BLAKE3 over `CHAIN_DOMAIN || serialized`), so a record hash can never be
+    // confused with a signing preimage.
+    let mut preimage = Vec::with_capacity(CHAIN_DOMAIN.len() + serialized.len());
+    preimage.extend_from_slice(CHAIN_DOMAIN.as_bytes());
+    preimage.extend_from_slice(serialized.as_bytes());
+    Ok(axiom_hash::blake3_hex(&preimage))
 }
 
 /// Reads the chain head (the `prev_hash` the next appended row must carry) from
@@ -286,8 +288,9 @@ fn parse_event_line(line: &str) -> Result<DriftlockEvent> {
 }
 
 fn key_fingerprint(pubkey: &VerifyingKey) -> String {
-    let digest = Sha256::digest(pubkey.as_bytes());
-    format!("fp:{}", hex::encode(&digest[..16]))
+    let digest = axiom_hash::blake3_hex(pubkey.as_bytes());
+    // First 16 bytes = first 32 hex chars of the BLAKE3 digest.
+    format!("fp:{}", &digest[..32])
 }
 
 fn publish_trust_pubkey(repo_root: &Path, pubkey: &VerifyingKey) -> Result<()> {
@@ -299,7 +302,7 @@ fn publish_trust_pubkey(repo_root: &Path, pubkey: &VerifyingKey) -> Result<()> {
     Ok(())
 }
 
-fn load_trust_pubkey(repo_root: &Path, key_id: &str) -> Result<Option<VerifyingKey>> {
+pub(crate) fn load_trust_pubkey(repo_root: &Path, key_id: &str) -> Result<Option<VerifyingKey>> {
     let file = trust_keys_dir(repo_root).join(format!("{key_id}.pub"));
     if !file.exists() {
         return Ok(None);
@@ -340,6 +343,9 @@ fn write_secret_file(path: &Path, bytes: &[u8]) -> Result<()> {
 }
 
 /// Restricts a directory to owner-only (0700) access on Unix.
+// On non-unix the body is infallible, but the `Result` is part of the
+// cross-platform signature (the unix path can fail); silence the lint there.
+#[cfg_attr(not(unix), allow(clippy::unnecessary_wraps))]
 fn harden_dir_permissions(dir: &Path) -> Result<()> {
     #[cfg(unix)]
     {
@@ -415,9 +421,19 @@ mod tests {
 
     #[test]
     fn preimage_has_domain_prefix() {
+        // v2 domain tag: BLAKE3 content-addressing migration (ADR-0003).
         let preimage = signing_preimage(&fixed_event()).unwrap();
         let text = String::from_utf8(preimage).unwrap();
-        assert!(text.starts_with("driftlock:events:sign:v1:"));
+        assert!(text.starts_with("driftlock:events:sign:v2:"));
+    }
+
+    #[test]
+    fn record_hash_is_blake3_64_lowercase_hex() {
+        // BLAKE3 hex is 64 lowercase hex chars. This pins the migration off
+        // SHA-256 (also 64 hex) by tying the value to a known BLAKE3 vector.
+        let h = record_hash(&fixed_event()).unwrap();
+        assert_eq!(h.len(), 64);
+        assert!(h.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
     }
 
     #[test]

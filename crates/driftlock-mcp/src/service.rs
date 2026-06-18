@@ -140,17 +140,16 @@ impl DriftlockService {
                 let task_id = required_str(&args, "task_id")?;
                 let actor = args.get("actor").and_then(Value::as_str).unwrap_or("mcp");
                 let wo = find_task(&graph, task_id).context("task not found")?;
-                let files = match changed_files_from_args(&args)? {
-                    Some(files) => files,
-                    // No diff/changed_files supplied: fall back to git like the
-                    // CLI does, rather than verifying an empty (vacuously
-                    // passing) change set.
-                    None => {
-                        let base = driftlock_git::current_head(&self.repo_root)
-                            .unwrap_or_else(|_| graph.base_ref.clone());
-                        driftlock_git::git_changed_files(&self.repo_root, &base)
-                            .context("no diff/changed_files provided and git fallback failed")?
-                    }
+                // No diff/changed_files supplied: fall back to git like the CLI
+                // does, rather than verifying an empty (vacuously passing) change
+                // set.
+                let files = if let Some(files) = changed_files_from_args(&args)? {
+                    files
+                } else {
+                    let base = driftlock_git::current_head(&self.repo_root)
+                        .unwrap_or_else(|_| graph.base_ref.clone());
+                    driftlock_git::git_changed_files(&self.repo_root, &base)
+                        .context("no diff/changed_files provided and git fallback failed")?
                 };
                 // Evaluate deterministic acceptance gates alongside the
                 // write-set check. Driftlock never executes command gates over
@@ -351,17 +350,16 @@ fn contained_path(root: &Path, path: &str) -> Result<PathBuf> {
     // Canonicalize the resolved target when it exists (defeats symlink escapes);
     // for not-yet-existing targets, canonicalize the parent and re-append the
     // file name, then verify containment lexically.
-    let resolved = match joined.canonicalize() {
-        Ok(p) => p,
-        Err(_) => {
-            let parent = joined
-                .parent()
-                .context("resolved path has no parent")?
-                .canonicalize()
-                .with_context(|| format!("canonicalizing parent of {}", joined.display()))?;
-            let name = joined.file_name().context("resolved path has no file name")?;
-            parent.join(name)
-        }
+    let resolved = if let Ok(p) = joined.canonicalize() {
+        p
+    } else {
+        let parent = joined
+            .parent()
+            .context("resolved path has no parent")?
+            .canonicalize()
+            .with_context(|| format!("canonicalizing parent of {}", joined.display()))?;
+        let name = joined.file_name().context("resolved path has no file name")?;
+        parent.join(name)
     };
 
     if !resolved.starts_with(&root_canon) {
