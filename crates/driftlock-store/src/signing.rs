@@ -239,7 +239,7 @@ fn signing_preimage(event: &DriftlockEvent) -> Result<Vec<u8>> {
     Ok(format!("{SIGN_DOMAIN}{hash}").into_bytes())
 }
 
-/// Domain-separated hex SHA-256 over an event's canonical bytes.
+/// Domain-separated hex BLAKE3 over an event's canonical bytes.
 ///
 /// This is the value the *next* row carries in its `prev_hash` field, forming
 /// the audit hash chain. It is computed over the same `serde_json` bytes the

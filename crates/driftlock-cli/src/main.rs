@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 use driftlock_core::{
     blocked_by_deps, build_task_graph, detect_graph_conflicts, extract_work_orders_from_adr,
     find_task, load_lane_manifest, promote_to_ready, ready_tasks_for_base, render_agent_brief,
-    unlocks_for, verify_changed_files, TaskGraph, TaskStatus, WorkOrder,
+    unlocks_for, verify_changed_files_with_gates, TaskGraph, TaskStatus, WorkOrder,
 };
 use driftlock_store::{
     append_event, complete_claim, generate_operator_key, init_state_dir, load_graph, new_claim,
@@ -124,6 +124,11 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
+        /// Delegate command-gate execution to an external runner. Driftlock
+        /// itself never spawns a process; this only changes how command
+        /// obligations are described.
+        #[arg(long)]
+        allow_exec: bool,
     },
     /// Claim a ready task.
     Claim {
@@ -159,6 +164,11 @@ enum Command {
         changed: Vec<String>,
         #[arg(default_value = ".")]
         repo: PathBuf,
+        /// Delegate command-gate execution to an external runner. Driftlock
+        /// itself never spawns a process; this only changes how command
+        /// obligations are described.
+        #[arg(long)]
+        allow_exec: bool,
     },
     /// Recompute conflicts and refresh graph metadata.
     Refresh {
@@ -353,11 +363,11 @@ fn run(command: Command) -> CliResult<Exit> {
             println!("{}", render_agent_brief(task));
             Ok(Exit::Ok)
         }
-        Command::CheckDiff { graph, task, diff_file, changed, repo } => {
+        Command::CheckDiff { graph, task, diff_file, changed, repo, allow_exec } => {
             let g = read_graph_file(&graph)?;
             let task = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files(task, &touched);
+            let report = verify_changed_files_with_gates(task, &touched, &repo, allow_exec);
             println!("{}", pretty(&report)?);
             // A write-set escape is a checked assertion, not a crash: exit 1.
             if report.allowed {
@@ -401,12 +411,12 @@ fn run(command: Command) -> CliResult<Exit> {
             )?;
             Ok(Exit::Ok)
         }
-        Command::Complete { graph, task, actor, diff_file, changed, repo } => {
+        Command::Complete { graph, task, actor, diff_file, changed, repo, allow_exec } => {
             let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
             let g = read_graph_file(&graph)?;
             let wo = find_task(&g, &task).ok_or_else(|| CliError::usage("task not found"))?;
             let touched = touched_files(&repo, diff_file, changed)?;
-            let report = verify_changed_files(wo, &touched);
+            let report = verify_changed_files_with_gates(wo, &touched, &repo, allow_exec);
             if !report.allowed {
                 // A write-set escape on complete is a preflight gate: it stops the
                 // mutation before it lands (FAILED_PREFLIGHT = 3).
