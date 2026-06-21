@@ -26,7 +26,9 @@ use std::path::Path;
 
 use anyhow::Result;
 
-pub use axiom_audit::{ChainVerdict, ReceiptLink, AuditRow, AUDIT_SCHEMA, GENESIS_HASH, TRAIL_FILENAME};
+pub use axiom_audit::{
+    AuditRow, ChainVerdict, ReceiptLink, AUDIT_SCHEMA, GENESIS_HASH, TRAIL_FILENAME,
+};
 
 /// Canonical tool name stamped on every audit row.
 pub const TOOL_NAME: &str = "driftlock";

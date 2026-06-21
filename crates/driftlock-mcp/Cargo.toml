@@ -13,6 +13,7 @@ rmcp-sdk = ["dep:rmcp"]
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 clap.workspace = true
 driftlock-contracts = { version = "0.1.0", path = "../driftlock-contracts" }
 driftlock-core = { version = "0.1.0", path = "../driftlock-core" }

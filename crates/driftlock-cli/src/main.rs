@@ -11,15 +11,16 @@ use driftlock_core::{
     unlocks_for, verify_changed_files_with_gates, TaskGraph, TaskStatus, WorkOrder,
 };
 use driftlock_store::{
-    append_event, complete_claim, generate_operator_key, init_state_dir, load_graph, new_claim,
-    record_claim, release_claim, save_graph, trust_operator_key, verify_audit_chain, verify_events,
-    Artifact, ChainVerdict, EventKind, StatePaths,
+    append_event, complete_claim, generate_operator_key, init_state_dir, load_checkpoint,
+    load_graph, new_claim, record_claim, release_claim, resume_status, save_graph,
+    trust_operator_key, verify_audit_chain, verify_events, Artifact, ChainVerdict, EventKind,
+    StatePaths,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use support::{io_err, json_err, record_operation, CliError, CliResult};
+use support::{io_err, json_err, record_operation, snapshot_checkpoint, CliError, CliResult};
 
 #[derive(Debug, Parser)]
 #[command(name = "driftlock", version, about = "ADR-derived work orders and safe lanes for agents")]
@@ -169,6 +170,24 @@ enum Command {
         /// obligations are described.
         #[arg(long)]
         allow_exec: bool,
+    },
+    /// Resume a work order from its last verified checkpoint.
+    ///
+    /// Reads `.driftlock/checkpoints/<task>.json` (written when the work order
+    /// last passed diff verification), re-hashes the verified files on disk, and
+    /// reports which are still intact (re-verification can be skipped) versus
+    /// drifted/missing (must be re-done). A degraded run that resumes from a
+    /// real prior checkpoint emits a graceful-degradation receipt
+    /// (`outcome=degraded`, exit 4).
+    Resume {
+        #[arg(long)]
+        graph: Option<PathBuf>,
+        #[arg(long)]
+        task: String,
+        #[arg(long, default_value = "cli")]
+        actor: String,
+        #[arg(default_value = ".")]
+        repo: PathBuf,
     },
     /// Recompute conflicts and refresh graph metadata.
     Refresh {
@@ -371,6 +390,13 @@ fn run(command: Command) -> CliResult<Exit> {
             println!("{}", pretty(&report)?);
             // A write-set escape is a checked assertion, not a crash: exit 1.
             if report.allowed {
+                // Snapshot the passing verification as the last-verified
+                // checkpoint so a later run can resume from here rather than
+                // re-verifying from scratch.
+                let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
+                let base =
+                    driftlock_git::current_head(&repo).unwrap_or_else(|_| g.base_ref.clone());
+                snapshot_checkpoint(&paths, &task.id, &base, &report)?;
                 Ok(Exit::Ok)
             } else {
                 Err(CliError::assertion(format!(
@@ -434,6 +460,10 @@ fn run(command: Command) -> CliResult<Exit> {
                     report.violations
                 )));
             }
+            // Record the passing verification as the work order's last-verified
+            // checkpoint before we mutate completion state.
+            let base = driftlock_git::current_head(&repo).unwrap_or_else(|_| g.base_ref.clone());
+            snapshot_checkpoint(&paths, &task, &base, &report)?;
             complete_claim(&paths, &task, &actor).map_err(preflight("complete claim"))?;
             let mut g = g;
             if let Ok(t) = find_task_mut(&mut g, &task) {
@@ -451,6 +481,53 @@ fn run(command: Command) -> CliResult<Exit> {
                 &actor,
             )?;
             Ok(Exit::Ok)
+        }
+        Command::Resume { graph, task, actor, repo } => {
+            let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
+            let g = load_graph_for_repo(&repo, graph)?;
+            let Some(checkpoint) =
+                load_checkpoint(&paths, &task).map_err(preflight("load checkpoint"))?
+            else {
+                // No prior verified checkpoint: there is nothing to resume from.
+                // This is a usage condition (the run never reached a verified
+                // state), not a degraded one — report it honestly.
+                return Err(CliError::usage(format!(
+                    "no verified checkpoint for task {task}; nothing to resume from (run check-diff/complete first)"
+                )));
+            };
+            let base = driftlock_git::current_head(&repo).unwrap_or_else(|_| g.base_ref.clone());
+            let status = resume_status(&paths, &checkpoint, &base);
+            println!("{}", pretty(&status)?);
+
+            // A resume is, by definition, a degraded run that recovered from a
+            // prior failure: emit a graceful-degradation receipt (pattern-07
+            // outcome=degraded, pattern-11 exit 4) wired to the audit trail so
+            // the degrade/resume event is itself attestable.
+            record_operation(
+                &paths,
+                "resume",
+                "degraded",
+                Exit::Degraded.as_i32(),
+                vec![Artifact::of_bytes("task", &task, task.as_bytes())],
+                vec![],
+                &actor,
+            )?;
+
+            if status.fully_resumable {
+                eprintln!(
+                    "resume: all {} verified file(s) intact at base {base}; resuming from last verified checkpoint",
+                    status.intact_files
+                );
+            } else {
+                eprintln!(
+                    "resume: {} intact, {} stale (drifted/missing); re-do the stale set, keep the intact prefix",
+                    status.intact_files, status.stale_files
+                );
+            }
+            // A resume always completes in the DEGRADED state (exit 4): the run
+            // is recovering, not running cleanly. This is the one genuine
+            // degraded path in the CLI taxonomy.
+            Ok(Exit::Degraded)
         }
         Command::Refresh { repo } => {
             let paths = init_state_dir(&repo).map_err(preflight("init state dir"))?;
@@ -509,7 +586,8 @@ fn run(command: Command) -> CliResult<Exit> {
         }
         Command::Key { command } => match command {
             KeyCommand::Generate { repo, force } => {
-                let info = generate_operator_key(&repo, force).map_err(preflight("generate key"))?;
+                let info =
+                    generate_operator_key(&repo, force).map_err(preflight("generate key"))?;
                 println!("{}", pretty(&info)?);
                 eprintln!(
                     "key generated but NOT trusted. To trust it run:\n  driftlock key trust {} {}",
@@ -552,9 +630,9 @@ fn run(command: Command) -> CliResult<Exit> {
                         );
                         Ok(Exit::Ok)
                     }
-                    ChainVerdict::Broken(why) => Err(CliError::assertion(format!(
-                        "audit-trail.jsonl chain broken: {why}"
-                    ))),
+                    ChainVerdict::Broken(why) => {
+                        Err(CliError::assertion(format!("audit-trail.jsonl chain broken: {why}")))
+                    }
                 }
             }
         },
