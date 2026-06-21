@@ -6,11 +6,14 @@
 //! preflight (IO / parse / write-set escape), `4` degraded, `>=64` tool-specific.
 //! Codes `5..=63` are never emitted.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use axiom_exit::Exit;
+use driftlock_core::DiffReport;
 use driftlock_store::{
-    append_audit, build_receipt, AuditEntry, AuditLink, Receipt, ReceiptInput, StatePaths,
+    append_audit, build_checkpoint, build_receipt, save_checkpoint, AuditEntry, AuditLink, Receipt,
+    ReceiptInput, StatePaths,
 };
 
 /// A classified CLI error: a human message plus the pattern-11 [`Exit`] code it
@@ -126,13 +129,51 @@ pub fn record_operation(
     Ok(receipt)
 }
 
+/// Snapshot a PASSING diff-verification as the work order's last-verified
+/// checkpoint under `.driftlock/checkpoints/<task>.json`.
+///
+/// Called only when `report.allowed` is true, so a checkpoint is never written
+/// for work that did not clear the boundary + gate checks. The snapshot records
+/// the verified files (content-addressed from disk) and a compact gate summary so
+/// a later [`resume`](crate) can determine which files are still intact and skip
+/// re-verifying them — resume-from-last-verified-state, not reconstruction.
+///
+/// A checkpoint write failure is surfaced as a preflight error (exit 3): a
+/// silently-dropped checkpoint would leave a resumer with stale state.
+pub fn snapshot_checkpoint(
+    paths: &StatePaths,
+    task_id: &str,
+    base_ref: &str,
+    report: &DiffReport,
+) -> CliResult<()> {
+    debug_assert!(report.allowed, "checkpoint must only be written from a passing verification");
+    let timestamp = chrono::Utc::now().to_rfc3339();
+    let gate_summary: BTreeMap<String, String> = report
+        .gate_results
+        .iter()
+        .map(|g| (format!("{}:{}", g.kind, g.subject), format!("{:?}", g.status)))
+        .collect();
+    let checkpoint = build_checkpoint(
+        &paths.repo_root,
+        task_id,
+        base_ref,
+        &timestamp,
+        &report.touched_files,
+        gate_summary,
+    );
+    save_checkpoint(paths, &checkpoint)
+        .map_err(|e| CliError::preflight(format!("save checkpoint: {e}")))?;
+    Ok(())
+}
+
 /// Write a receipt under `.driftlock/receipts/`.
 fn write_receipt(state_dir: &Path, seq: u64, operation: &str, receipt: &Receipt) -> CliResult<()> {
     let dir = state_dir.join("receipts");
     std::fs::create_dir_all(&dir).map_err(io_err("create receipts dir"))?;
     let safe_op = operation.replace(|c: char| !c.is_ascii_alphanumeric(), "-");
     let file = dir.join(format!("{seq:08}-{safe_op}.json"));
-    let json = receipt.to_json().map_err(|e| CliError::preflight(format!("serialize receipt: {e}")))?;
+    let json =
+        receipt.to_json().map_err(|e| CliError::preflight(format!("serialize receipt: {e}")))?;
     std::fs::write(&file, json).map_err(io_err("write receipt"))?;
     Ok(())
 }

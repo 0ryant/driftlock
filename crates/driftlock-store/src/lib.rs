@@ -1,6 +1,7 @@
 //! `.driftlock` state directory: graph, claims, and audit events.
 
 mod audit;
+mod checkpoint;
 mod claims;
 mod events;
 mod paths;
@@ -11,6 +12,11 @@ mod signing;
 pub use audit::{
     append as append_audit, read_trail, trail_path, verify_chain as verify_audit_chain, AuditEntry,
     AuditRow, ChainVerdict, AUDIT_SCHEMA, GENESIS_HASH, TRAIL_FILENAME,
+};
+pub use checkpoint::{
+    build_checkpoint, checkpoint_path, checkpoints_dir, load_checkpoint, resume_status,
+    save_checkpoint, Checkpoint, FileResume, FileState, ResumeStatus, VerifiedFile,
+    CHECKPOINT_SCHEMA,
 };
 pub use claims::{
     active_claim_for_task, complete_claim, load_claims, new_claim, record_claim, release_claim,

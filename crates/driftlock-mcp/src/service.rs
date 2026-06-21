@@ -13,9 +13,11 @@ use driftlock_core::{
     TaskGraph, TaskStatus,
 };
 use driftlock_store::{
-    complete_claim, init_state_dir, new_claim, record_claim, release_claim, save_graph,
+    build_checkpoint, complete_claim, init_state_dir, load_checkpoint, new_claim, record_claim,
+    release_claim, resume_status, save_checkpoint, save_graph, StatePaths,
 };
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -163,6 +165,12 @@ impl DriftlockService {
                         report.gate_results
                     );
                 }
+                // Snapshot the passing verification as the last-verified
+                // checkpoint so a later resume_task can pick up from here rather
+                // than re-verifying from scratch.
+                let base = driftlock_git::current_head(&self.repo_root)
+                    .unwrap_or_else(|_| graph.base_ref.clone());
+                snapshot_checkpoint(&paths, task_id, &base, &report)?;
                 complete_claim(&paths, task_id, actor)?;
                 if let Some(t) = graph.tasks.iter_mut().find(|t| t.id == task_id) {
                     t.status = TaskStatus::Complete;
@@ -181,12 +189,41 @@ impl DriftlockService {
                 let task_id = required_str(&args, "task_id")?;
                 let task = find_task(&graph, task_id).context("task not found")?;
                 let files = changed_files_from_args(&args)?.unwrap_or_default();
-                Ok(serde_json::to_value(verify_changed_files_with_gates(
-                    task,
-                    &files,
-                    &self.repo_root,
-                    false,
-                ))?)
+                let report = verify_changed_files_with_gates(task, &files, &self.repo_root, false);
+                // A passing verification is a checkpointable last-verified state.
+                if report.allowed {
+                    let paths = init_state_dir(&self.repo_root)?;
+                    let base = driftlock_git::current_head(&self.repo_root)
+                        .unwrap_or_else(|_| graph.base_ref.clone());
+                    snapshot_checkpoint(&paths, task_id, &base, &report)?;
+                }
+                Ok(serde_json::to_value(report)?)
+            }
+            "resume_task" => {
+                let paths = init_state_dir(&self.repo_root)?;
+                let task_id = required_str(&args, "task_id")?;
+                let graph_path = args
+                    .get("graph_path")
+                    .and_then(Value::as_str)
+                    .unwrap_or(".driftlock/graph.json");
+                let base = match self.read_graph(graph_path) {
+                    Ok(graph) => {
+                        driftlock_git::current_head(&self.repo_root).unwrap_or(graph.base_ref)
+                    }
+                    Err(_) => driftlock_git::current_head(&self.repo_root)
+                        .unwrap_or_else(|_| "working-tree".to_string()),
+                };
+                let Some(checkpoint) = load_checkpoint(&paths, task_id)? else {
+                    // No verified checkpoint: honestly report there is nothing to
+                    // resume from rather than fabricating a degraded state.
+                    return Ok(json!({
+                        "resumable": false,
+                        "reason": "no verified checkpoint; run complete/verify first",
+                        "task_id": task_id,
+                    }));
+                };
+                let status = resume_status(&paths, &checkpoint, &base);
+                Ok(serde_json::to_value(status)?)
             }
             "list_skills" => Ok(serde_json::to_value(
                 driftlock_skills::skills()
@@ -387,6 +424,34 @@ fn placeholders_in(body: &str) -> Vec<String> {
     names
 }
 
+/// Snapshot a PASSING diff-verification as the work order's last-verified
+/// checkpoint. Mirrors the CLI's `support::snapshot_checkpoint`: only ever called
+/// when `report.allowed` is true, so a checkpoint is never written for unverified
+/// work. Enables `resume_task` to resume from the last verified state.
+fn snapshot_checkpoint(
+    paths: &StatePaths,
+    task_id: &str,
+    base_ref: &str,
+    report: &driftlock_core::DiffReport,
+) -> Result<()> {
+    let timestamp = chrono::Utc::now().to_rfc3339();
+    let gate_summary: BTreeMap<String, String> = report
+        .gate_results
+        .iter()
+        .map(|g| (format!("{}:{}", g.kind, g.subject), format!("{:?}", g.status)))
+        .collect();
+    let checkpoint = build_checkpoint(
+        &paths.repo_root,
+        task_id,
+        base_ref,
+        &timestamp,
+        &report.touched_files,
+        gate_summary,
+    );
+    save_checkpoint(paths, &checkpoint).context("save checkpoint")?;
+    Ok(())
+}
+
 fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
     value
         .get(key)
@@ -458,5 +523,85 @@ mod tests {
     fn changed_files_from_args_distinguishes_absent_from_empty() {
         assert!(changed_files_from_args(&json!({})).unwrap().is_none());
         assert_eq!(changed_files_from_args(&json!({"changed_files": []})).unwrap(), Some(vec![]));
+    }
+
+    #[test]
+    fn resume_task_without_checkpoint_reports_not_resumable() {
+        let root = std::env::temp_dir().join(format!("dl-resume-none-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        let service = super::DriftlockService::new(root.clone());
+        let out = service.call_tool("resume_task", json!({"task_id": "adr-0001:T01"})).unwrap();
+        assert_eq!(out["resumable"], json!(false));
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn verify_then_resume_round_trips_over_mcp() {
+        // A passing verify_diff_against_task snapshots a checkpoint; resume_task
+        // then reports the verified file as intact and fully resumable.
+        let nonce =
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("dl-resume-rt-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(root.join("src")).unwrap();
+        fs::write(root.join("src/lib.rs"), "verified body").unwrap();
+
+        let graph = json!({
+            "schema_version": "0.1.0",
+            "graph_id": "g",
+            "repo_root": ".",
+            "base_ref": "working-tree",
+            "generated_at": "2026-06-21T00:00:00+00:00",
+            "tasks": [{
+                "id": "adr-0001:T01",
+                "title": "t",
+                "source": {"adr":"a","adr_revision":"r","section":"s","start_line":1,"end_line":1},
+                "intent": "i",
+                "lane": "core",
+                "status": "ready",
+                "write_set": ["src/**"],
+                "read_set": [],
+                "confidence": {"task_extraction":0.95,"file_scope":0.9,"dependency_edges":0.85}
+            }],
+            "edges": [], "lanes": [], "metadata": {}
+        });
+        fs::create_dir_all(root.join(".driftlock")).unwrap();
+        fs::write(root.join(".driftlock/graph.json"), graph.to_string()).unwrap();
+
+        let service = super::DriftlockService::new(root.clone());
+        let verify = service
+            .call_tool(
+                "verify_diff_against_task",
+                json!({
+                    "graph_path": ".driftlock/graph.json",
+                    "task_id": "adr-0001:T01",
+                    "changed_files": ["src/lib.rs"]
+                }),
+            )
+            .unwrap();
+        assert_eq!(verify["allowed"], json!(true), "verify must pass to checkpoint");
+
+        let resume = service
+            .call_tool(
+                "resume_task",
+                json!({"graph_path": ".driftlock/graph.json", "task_id": "adr-0001:T01"}),
+            )
+            .unwrap();
+        assert_eq!(resume["intact_files"], json!(1));
+        assert_eq!(resume["stale_files"], json!(0));
+        assert_eq!(resume["fully_resumable"], json!(true));
+
+        // Corrupt the verified file: resume now flags it stale (drifted).
+        fs::write(root.join("src/lib.rs"), "CHANGED").unwrap();
+        let resume2 = service
+            .call_tool(
+                "resume_task",
+                json!({"graph_path": ".driftlock/graph.json", "task_id": "adr-0001:T01"}),
+            )
+            .unwrap();
+        assert_eq!(resume2["stale_files"], json!(1));
+        assert_eq!(resume2["fully_resumable"], json!(false));
+
+        let _ = fs::remove_dir_all(&root);
     }
 }

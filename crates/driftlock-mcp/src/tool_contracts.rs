@@ -70,6 +70,11 @@ pub fn tool_definitions() -> Vec<Value> {
             "Complete a claimed task after diff verification.",
             &json!({"type":"object","properties":{"graph_path":{"type":"string"},"task_id":{"type":"string"},"actor":{"type":"string"},"changed_files":{"type":"array","items":{"type":"string"}},"diff":{"type":"string"}},"required":["task_id"]}),
         ),
+        tool(
+            "resume_task",
+            "Resume a work order from its last verified checkpoint: reports which verified files are still intact (skip re-verification) vs drifted/missing (re-do).",
+            &json!({"type":"object","properties":{"graph_path":{"type":"string"},"task_id":{"type":"string"}},"required":["task_id"]}),
+        ),
     ]
 }
 

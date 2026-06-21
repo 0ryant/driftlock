@@ -68,18 +68,18 @@ pub const GENESIS_PREV_HASH: &str =
 
 /// One audit event line.
 ///
-/// `prev_hash` links this row to the SHA-256 of the previous row's canonical
-/// bytes (see [`crate::signing::record_hash`]), making the JSONL a genuine
-/// hash chain: truncation, reordering, or deletion of any row breaks the
-/// contiguous linkage and is caught by [`crate::verify_events`] — even for
+/// `prev_hash` links this row to the domain-separated BLAKE3 of the previous
+/// row's canonical bytes (see [`crate::signing::record_hash`]), making the JSONL
+/// a genuine hash chain: truncation, reordering, or deletion of any row breaks
+/// the contiguous linkage and is caught by [`crate::verify_events`] — even for
 /// unsigned rows, where per-row Ed25519 signatures provide no cross-row
-/// integrity.
+/// integrity. Signing is optional; the chain holds regardless.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DriftlockEvent {
-    /// Hex SHA-256 of the previous row's canonical bytes, or
-    /// [`GENESIS_PREV_HASH`] for the first row. Bound into the signing preimage,
-    /// so tampering with the linkage also invalidates the signature on signed
-    /// rows.
+    /// Hex BLAKE3 of the previous row's canonical bytes (domain-separated; see
+    /// [`crate::signing::record_hash`]), or [`GENESIS_PREV_HASH`] for the first
+    /// row. Bound into the signing preimage, so tampering with the linkage also
+    /// invalidates the signature on signed rows.
     #[serde(default = "genesis_prev_hash")]
     pub prev_hash: String,
     /// `CloudEvents` type.
@@ -147,7 +147,8 @@ pub fn append_event(
     }
 
     let path = crate::paths::events_path(paths);
-    // Link this row to the SHA-256 of the previous row, forming a hash chain.
+    // Link this row to the domain-separated BLAKE3 of the previous row, forming
+    // a hash chain.
     // Reading the head before appending must happen under the same logical
     // append so concurrent writers do not fork the chain (single-writer model;
     // the contiguity check at verify time still detects any fork after the

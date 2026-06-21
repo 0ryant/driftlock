@@ -11,7 +11,9 @@ intent to delivered changes.
 
 - Standardised MCP/CLI conformance.
 - Real multi-agent or multi-lane receipt showing drift reduction.
-- Canonical audit chain wording aligned with actual implementation.
+- ~~Canonical audit chain wording aligned with actual implementation.~~ Done:
+  docs now name the implemented domain-separated **BLAKE3** chain (not the stale
+  SHA-256) and state that signing is optional and orthogonal to the chain.
 - Measurement of acceptance-gate pass/fail quality.
 
 ## Steps

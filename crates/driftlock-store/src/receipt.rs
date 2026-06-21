@@ -55,7 +55,11 @@ impl Artifact {
     /// Build an artifact from already-known content bytes.
     #[must_use]
     pub fn of_bytes(kind: &str, path: &str, bytes: &[u8]) -> Self {
-        Self { kind: kind.to_string(), path: path.to_string(), blake3: axiom_hash::blake3_hex(bytes) }
+        Self {
+            kind: kind.to_string(),
+            path: path.to_string(),
+            blake3: axiom_hash::blake3_hex(bytes),
+        }
     }
 }
 
@@ -255,7 +259,11 @@ mod tests {
         vec![Artifact::of_bytes("file", "ADR-0001.md", b"adr text")]
     }
 
-    fn input(operation: &str, outputs: Vec<Artifact>, audit_chain: Option<AuditLink>) -> ReceiptInput {
+    fn input(
+        operation: &str,
+        outputs: Vec<Artifact>,
+        audit_chain: Option<AuditLink>,
+    ) -> ReceiptInput {
         ReceiptInput {
             operation: operation.to_string(),
             outcome: "ok".to_string(),

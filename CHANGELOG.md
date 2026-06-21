@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Resume from last verified checkpoint.** A passing diff verification
+  (`check-diff` / `complete` and the MCP `verify_diff_against_task` /
+  `complete_task`) now snapshots the work order's verified state to
+  `.driftlock/checkpoints/<task>.json`: the touched files with their BLAKE3
+  content digests, the gate verdicts, and the base ref. When a long multi-agent
+  run dies after a work order already passed verification, the new `driftlock
+  resume` verb (and MCP `resume_task` tool) re-hashes those files and reports,
+  per file, whether the verified bytes are still `intact` (re-verification can
+  be skipped), `drifted`, or `missing` (must be re-done) — so the run resumes
+  from the last verified checkpoint instead of restarting from scratch. A resume
+  is a genuinely **degraded** run: it emits a graceful-degradation receipt
+  (`axiom.receipt.v1`, `outcome=degraded`, exit code 4) linked into the audit
+  trail. Honest scope: a checkpoint is a verified-state *manifest*, not a content
+  backup; it does not resurrect lost work, it lets a resumer keep the still-intact
+  prefix. A moved base ref invalidates a full resume (stale-base-ref rule).
+
 - **Typed acceptance gates.** `WorkOrder.acceptance` is now a typed
   `AcceptanceGate` (serde untagged): a bare string still deserializes to
   `Advisory` (back-compat), while structured `{file_exists}` and
@@ -18,11 +34,14 @@
   example `work-order.gates.json`.
 
 - Audit log is now a genuine **hash chain**: each `events.jsonl` row carries a
-  `prev_hash` linking it to the SHA-256 of the previous row (genesis = 64 hex
-  zeros). `audit verify` fails closed on a broken chain, detecting row deletion,
-  reordering, and in-place edits — even for unsigned rows. On signed rows the
-  link is folded into the signing preimage. Closes the "hash-chained" wording
-  gap (the claim is now real and tested).
+  `prev_hash` linking it to the domain-separated BLAKE3 of the previous row
+  (`driftlock:events:chain:v2:` domain; ADR-0003 migrated this off the original
+  SHA-256 chain; genesis = 64 hex zeros). `audit verify` fails closed on a broken
+  chain, detecting row deletion, reordering, and in-place edits — even for
+  **unsigned** rows (signing is optional and orthogonal to the chain). On signed
+  rows the link is folded into the signing preimage. Closes the "hash-chained"
+  wording gap (the claim is now real and tested) and corrects the stale SHA-256
+  naming in the docs to the implemented BLAKE3.
 
 ## 0.1.0-rc.1 - 2026-05-19
 
