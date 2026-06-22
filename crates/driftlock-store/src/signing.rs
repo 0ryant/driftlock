@@ -44,6 +44,11 @@ pub struct KeyInfo {
     pub key_id: String,
     /// Hex-encoded public key.
     pub public_key_hex: String,
+    /// Signing-key tier of this generated operator key. Always
+    /// [`axiom_receipt::KeyClass::Dev`]: an operator key proves "bound under THIS
+    /// key" (mechanism, not origin). Origin-grade signing is a deployment key
+    /// supplied out-of-band via `DRIFTLOCK_SIGNING_SEED_HEX`.
+    pub key_class: axiom_receipt::KeyClass,
 }
 
 /// Verification report.
@@ -366,6 +371,8 @@ fn key_info(path: &Path, signing_key: &SigningKey) -> KeyInfo {
         path: path.to_path_buf(),
         key_id: key_fingerprint(&verifying_key),
         public_key_hex: hex::encode(verifying_key.as_bytes()),
+        // The generated operator key is the dev baseline (mechanism, not origin).
+        key_class: axiom_receipt::KeyClass::Dev,
     }
 }
 

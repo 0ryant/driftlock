@@ -4,6 +4,7 @@ mod audit;
 mod checkpoint;
 mod claims;
 mod events;
+mod key;
 mod paths;
 mod persistence;
 mod receipt;
@@ -13,6 +14,7 @@ pub use audit::{
     append as append_audit, read_trail, trail_path, verify_chain as verify_audit_chain, AuditEntry,
     AuditRow, ChainVerdict, AUDIT_SCHEMA, GENESIS_HASH, TRAIL_FILENAME,
 };
+pub use axiom_receipt::KeyClass;
 pub use checkpoint::{
     build_checkpoint, checkpoint_path, checkpoints_dir, load_checkpoint, resume_status,
     save_checkpoint, Checkpoint, FileResume, FileState, ResumeStatus, VerifiedFile,
@@ -22,6 +24,7 @@ pub use claims::{
     active_claim_for_task, complete_claim, load_claims, new_claim, record_claim, release_claim,
 };
 pub use events::{append_event, provenance_from_env, DriftlockEvent, EventKind, GENESIS_PREV_HASH};
+pub use key::{DEPLOYMENT_KEY_ID_DEFAULT, ENV_PREFIX as DEPLOYMENT_ENV_PREFIX};
 pub use paths::{claims_path, events_path, graph_path, init_state_dir, StatePaths};
 pub use persistence::{load_graph, save_graph};
 pub use receipt::{

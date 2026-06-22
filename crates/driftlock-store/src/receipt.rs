@@ -17,8 +17,10 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
+use axiom_receipt::KeyClass;
 use serde::{Deserialize, Serialize};
 
+use crate::key;
 use crate::signing::load_active_signing_key;
 
 /// Receipt schema version. Verifiers reject anything else.
@@ -102,6 +104,12 @@ pub struct ReceiptBody {
     pub created_at: String,
     /// Free-form attribution of who/what produced this receipt.
     pub created_by: String,
+    /// Signing-key tier: `dev` (the operator's `.driftlock` key — mechanism, not
+    /// origin) or `deployment` (a configured `DRIFTLOCK_SIGNING_SEED_HEX` key —
+    /// origin-grade once its public half is pinned in the trust store). Stamped
+    /// inside the signed body so it cannot be relabelled after signing. An unsigned
+    /// receipt (no key at emit time) still defaults to `dev`.
+    pub key_class: KeyClass,
 }
 
 impl ReceiptBody {
@@ -159,10 +167,32 @@ pub struct ReceiptInput {
 
 /// Build and sign an `axiom.receipt.v1` receipt for one operation.
 ///
-/// Signs under the repo's active `.driftlock` signing key when present; otherwise
-/// emits the receipt unsigned (`signature`/`key_id` empty). The `key_id` is the
-/// BLAKE3 fingerprint of the verifying key (matching [`crate::signing`]).
+/// The signing key is resolved through [`crate::key`]: a deployment key from
+/// `DRIFTLOCK_SIGNING_SEED_HEX` takes precedence ([`KeyClass::Deployment`]), else
+/// the operator's active `.driftlock` key ([`KeyClass::Dev`]). The active
+/// [`KeyClass`] is stamped INTO the signed body. When neither key is available the
+/// receipt is emitted unsigned (`signature`/`key_id` empty) and self-labels `dev`.
+/// The `key_id` is the deployment key-id, or the BLAKE3 fingerprint of the
+/// operator verifying key (matching [`crate::signing`]).
 pub fn build_signed(repo_root: &Path, input: ReceiptInput) -> Result<Receipt> {
+    // Resolve the active signing key. A deployment seed in the environment signs
+    // over an operator-key baseline; with no operator key, only a deployment seed
+    // can sign, otherwise the receipt is unsigned.
+    let active = match load_active_signing_key(repo_root)? {
+        Some(sk) => {
+            let operator_seed = sk.to_bytes();
+            let operator_key_id = key_fingerprint(&sk.verifying_key().to_bytes());
+            let signer = key::active_signer(operator_seed, operator_key_id.clone());
+            let key_id = key::active_key_id(operator_seed, operator_key_id.clone());
+            let key_class = key::active_key_class(operator_seed, operator_key_id);
+            Some((signer, key_id, key_class))
+        }
+        None => deployment_only_signer(),
+    };
+
+    // The body self-labels the active key class even when emitted unsigned (no
+    // key present defaults to dev), so a verifier always reads an origin claim.
+    let key_class = active.as_ref().map_or(KeyClass::Dev, |(_, _, c)| *c);
     let body = ReceiptBody {
         schema: RECEIPT_SCHEMA.to_string(),
         tool: TOOL_NAME.to_string(),
@@ -175,18 +205,31 @@ pub fn build_signed(repo_root: &Path, input: ReceiptInput) -> Result<Receipt> {
         audit_chain: input.audit_chain,
         created_at: chrono::Utc::now().to_rfc3339(),
         created_by: input.created_by,
+        key_class,
     };
 
-    match load_active_signing_key(repo_root)? {
-        Some(sk) => {
-            let key_id = key_fingerprint(&sk.verifying_key().to_bytes());
-            let signer = axiom_receipt::Ed25519Signer::from_seed(sk.to_bytes(), key_id.clone());
+    match active {
+        Some((signer, key_id, _)) => {
             let (sig, _) = axiom_receipt::sign_bytes(&axiom_receipt::Jcs(&body), &signer)
                 .context("sign receipt body")?;
             Ok(Receipt { body, signature: hex::encode(sig), key_id })
         }
         None => Ok(Receipt { body, signature: String::new(), key_id: String::new() }),
     }
+}
+
+/// When no operator key is on disk, a `DRIFTLOCK_SIGNING_SEED_HEX` deployment seed
+/// can still sign. Returns the deployment signer/key-id/class, or `None` to emit
+/// unsigned. The deployment seed doubles as the keyring's baseline here (it is the
+/// active key either way), so the resolved class is always [`KeyClass::Deployment`]
+/// when a valid seed is present.
+fn deployment_only_signer() -> Option<(axiom_receipt::Ed25519Signer, String, KeyClass)> {
+    let seed_hex = std::env::var(format!("{}_SIGNING_SEED_HEX", key::ENV_PREFIX)).ok()?;
+    let key_id_env = std::env::var(format!("{}_SIGNING_KEY_ID", key::ENV_PREFIX)).ok();
+    let (seed, key_id) =
+        axiom_receipt::resolve_seed(Some(seed_hex), key_id_env, key::DEPLOYMENT_KEY_ID_DEFAULT)?;
+    let signer = axiom_receipt::Ed25519Signer::from_seed(seed, key_id.clone());
+    Some((signer, key_id, KeyClass::Deployment))
 }
 
 /// Typed verdict from [`verify`].
@@ -323,5 +366,25 @@ mod tests {
         let mut r = build_signed(dir.path(), input("claim", vec![], None)).unwrap();
         r.body.exit_code = 1; // tamper after signing.
         assert!(matches!(verify(dir.path(), &r).unwrap(), Verdict::Invalid(_)));
+    }
+
+    #[test]
+    fn key_class_defaults_dev_and_is_tamper_proof() {
+        // With no DRIFTLOCK_SIGNING_SEED_HEX env, the active key is the operator's
+        // generated `.driftlock` key, so a fresh signed receipt self-labels `dev`
+        // (mechanism, not origin).
+        let dir = tempfile::tempdir().unwrap();
+        crate::init_state_dir(dir.path()).unwrap();
+        let info = generate_operator_key(dir.path(), false).unwrap();
+        trust_operator_key(dir.path(), &info.key_id).unwrap();
+        let r = build_signed(dir.path(), input("complete", vec![], None)).unwrap();
+        assert_eq!(r.body.key_class, KeyClass::Dev);
+        assert!(verify(dir.path(), &r).unwrap().is_valid());
+
+        // key_class lives INSIDE the signed body — relabelling a dev receipt as
+        // `deployment` after signing breaks the signature (fail-closed).
+        let mut forged = r.clone();
+        forged.body.key_class = KeyClass::Deployment;
+        assert!(matches!(verify(dir.path(), &forged).unwrap(), Verdict::Invalid(_)));
     }
 }
