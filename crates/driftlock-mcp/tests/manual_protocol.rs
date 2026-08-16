@@ -33,7 +33,7 @@ fn server_identity_constants_are_pinned() {
     // serverInfo identity must be Driftlock's, not the rmcp SDK default ("rmcp").
     assert_eq!(driftlock_mcp::SERVER_NAME, "driftlock-mcp");
     assert_eq!(driftlock_mcp::SERVER_VERSION, env!("CARGO_PKG_VERSION"));
-    assert_eq!(driftlock_mcp::MCP_PROTOCOL_VERSION, "2025-06-18");
+    assert_eq!(driftlock_mcp::MCP_PROTOCOL_VERSION, "2025-11-25");
 }
 
 #[cfg(feature = "rmcp-sdk")]

@@ -10,10 +10,10 @@
 use crate::service::{tool_structured_content, DriftlockService};
 use rmcp::{
     model::{
-        Annotated, CallToolResult, Content, GetPromptResult, Implementation, ListPromptsResult,
-        ListResourcesResult, ListToolsResult, Prompt, PromptMessage, PromptMessageRole,
-        ProtocolVersion, RawResource, ReadResourceResult, ResourceContents, ServerCapabilities,
-        ServerInfo,
+        CallToolResponse, CallToolResult, ContentBlock, GetPromptResponse, GetPromptResult,
+        Implementation, ListPromptsResult, ListResourcesResult, ListToolsResult, Prompt,
+        PromptMessage, ProtocolVersion, ReadResourceResponse, ReadResourceResult, Resource,
+        ResourceContents, Role, ServerCapabilities, ServerInfo,
     },
     transport::stdio,
     ErrorData as McpError, ServerHandler, ServiceExt,
@@ -62,7 +62,7 @@ impl ServerHandler for DriftlockRmcp {
                 .into_iter()
                 .filter_map(|def| json_tool_to_rmcp(def))
                 .collect();
-            Ok(ListToolsResult { tools, next_cursor: None, meta: None })
+            Ok(ListToolsResult::with_all_items(tools))
         }
     }
 
@@ -70,15 +70,17 @@ impl ServerHandler for DriftlockRmcp {
         &self,
         request: rmcp::model::CallToolRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<CallToolResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<CallToolResponse, McpError>> + Send + '_ {
         async move {
             let args = request.arguments.map(Value::Object).unwrap_or_else(|| json!({}));
             match self.service.call_tool(&request.name, args) {
                 Ok(value) => {
                     let structured = tool_structured_content(value);
-                    Ok(CallToolResult::structured(structured))
+                    Ok(CallToolResult::structured(structured).into())
                 }
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(err.to_string())])),
+                Err(err) => {
+                    Ok(CallToolResult::error(vec![ContentBlock::text(err.to_string())]).into())
+                }
             }
         }
     }
@@ -97,22 +99,12 @@ impl ServerHandler for DriftlockRmcp {
                     let uri = r.get("uri")?.as_str()?.to_string();
                     let name = r.get("name")?.as_str()?.to_string();
                     let mime = r.get("mimeType").and_then(Value::as_str).map(str::to_string);
-                    Some(Annotated::new(
-                        RawResource {
-                            uri,
-                            name,
-                            title: None,
-                            description: None,
-                            mime_type: mime,
-                            size: None,
-                            icons: None,
-                            meta: None,
-                        },
-                        None,
-                    ))
+                    let mut resource = Resource::new(uri, name);
+                    resource.mime_type = mime;
+                    Some(resource)
                 })
                 .collect();
-            Ok(ListResourcesResult { resources, next_cursor: None, meta: None })
+            Ok(ListResourcesResult::with_all_items(resources))
         }
     }
 
@@ -120,7 +112,7 @@ impl ServerHandler for DriftlockRmcp {
         &self,
         request: rmcp::model::ReadResourceRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<ReadResourceResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<ReadResourceResponse, McpError>> + Send + '_ {
         async move {
             let uri = request.uri.to_string();
             let (text, mime) = self
@@ -129,7 +121,8 @@ impl ServerHandler for DriftlockRmcp {
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
             Ok(ReadResourceResult::new(vec![
                 ResourceContents::text(text, uri).with_mime_type(mime.to_string())
-            ]))
+            ])
+            .into())
         }
     }
 
@@ -154,7 +147,7 @@ impl ServerHandler for DriftlockRmcp {
                     Some(prompt)
                 })
                 .collect();
-            Ok(ListPromptsResult { prompts, next_cursor: None, meta: None })
+            Ok(ListPromptsResult::with_all_items(prompts))
         }
     }
 
@@ -162,15 +155,16 @@ impl ServerHandler for DriftlockRmcp {
         &self,
         request: rmcp::model::GetPromptRequestParams,
         _context: rmcp::service::RequestContext<rmcp::service::RoleServer>,
-    ) -> impl std::future::Future<Output = Result<GetPromptResult, McpError>> + Send + '_ {
+    ) -> impl std::future::Future<Output = Result<GetPromptResponse, McpError>> + Send + '_ {
         async move {
             let name = request.name.to_string();
             let body = self
                 .service
                 .get_prompt(&name, request.arguments.as_ref())
                 .map_err(|e| McpError::internal_error(e.to_string(), None))?;
-            Ok(GetPromptResult::new(vec![PromptMessage::new_text(PromptMessageRole::User, body)])
-                .with_description(name))
+            Ok(GetPromptResult::new(vec![PromptMessage::new_text(Role::User, body)])
+                .with_description(name)
+                .into())
         }
     }
 }

@@ -18,7 +18,7 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Both the manual-stdio and rmcp transports derive their advertised protocol
 /// version from this single constant so they cannot drift apart. `rmcp`'s own
 /// default (`ProtocolVersion::LATEST`) lags the spec, so we pin it here.
-pub const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
+pub const MCP_PROTOCOL_VERSION: &str = "2025-11-25";
 
 #[cfg(feature = "manual-stdio")]
 pub mod manual_stdio;
