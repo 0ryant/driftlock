@@ -12,7 +12,7 @@ jobs:
   taudit-workflows:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@1.100.0
       - name: Install taudit CLI
         run: cargo install taudit --locked
