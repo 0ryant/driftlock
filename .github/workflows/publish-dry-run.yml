@@ -1,11 +1,7 @@
 name: publish-dry-run
 
 on:
-  pull_request:
-    paths:
-      - "crates/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
+  workflow_dispatch:
 
 permissions:
   contents: read
